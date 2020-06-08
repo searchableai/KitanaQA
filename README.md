@@ -1,4 +1,4 @@
-# dAugmentator
+Doggmentator
 
 - Synonym Replacement (SR) https://arxiv.org/pdf/1603.00892.pdf
 - Random Insertion (RI)
