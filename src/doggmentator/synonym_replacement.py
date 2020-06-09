@@ -46,7 +46,7 @@ def _check_sent(sent: str) -> str:
             '{}:_check_sent: {} - {}'.format(
                 __file__.split('/')[-1], sent, e)
             )
-        return None
+        return ''
     sent = re.sub(r'[^A-Za-z0-9. ]', '', sent).lower()
     return sent
 
