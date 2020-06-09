@@ -32,12 +32,12 @@ logger.debug(
     )
 vecs = {}
 f = open(data_file, 'r')
-for n, l in enumerate(f):
-    l = l.strip().split()
-    vecs[l[0].lower()] = np.asarray([float(x) for x in l[1:]])
+for n, line in enumerate(f):
+    line = line.strip().split()
+    vecs[line[0].lower()] = np.asarray([float(x) for x in line[1:]])
 
 
-def _check_sent(sent):
+def _check_sent(sent: str) -> str:
     """Run sanity checks on input and sanitize"""
     try:
         sent = str(sent)
@@ -47,7 +47,6 @@ def _check_sent(sent):
                 __file__.split('/')[-1], sent, e)
             )
         return None
-
     sent = re.sub(r'[^A-Za-z0-9. ]', '', sent).lower()
     return sent
 
@@ -91,7 +90,7 @@ def gen_synonyms(
 
             # sort (desc) vectors by similarity score
             word_dict = {
-                x[0]: cosine_similarity(x[1], search_vector) for x in vspace}
+                x[0]: _cosine_similarity(x[1], search_vector) for x in vspace}
             vspace = [(x[0], word_dict[x[0]]) for x in vspace]
             vspace = sorted(vspace, key=lambda w: w[1], reverse=True)
 
@@ -119,6 +118,7 @@ def gen_synonyms(
                 )
             )
 
+    # check if any synonyms were found
     if not syn_map:
         return None
     else:
@@ -143,6 +143,7 @@ def gen_synonyms(
             return None
         else:
             return syn_terms
+
 
 if __name__ == '__main__':
     pass
