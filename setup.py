@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 setup(
     name='Doggmentator',
     url='https://github.com/searchableai/doggmentator',
-    author='Senzayu Zhang, Abijith Vijayendra, Aaron Sisto',
+    author='Senzyu Zhang, Abijith Vijayendra, Aaron Sisto',
     author_email='aaron@searchable.ai',
     version='0.1',
     package_dir={"":"src"},
