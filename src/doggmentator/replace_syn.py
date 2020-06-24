@@ -79,7 +79,7 @@ def _wordnet_syns(term: str, num_syns: int=1) -> List:
     return [synonyms[x] for x in rand_idx][0]
 
 
-def _wordvec_syns(term: str, num_syns: int=1) -> List:
+def _wordvec_syns(term: str, num_syns: int=10) -> List:
     """Find synonyms using word vectors"""
 
     # get word vector
@@ -95,15 +95,16 @@ def _wordvec_syns(term: str, num_syns: int=1) -> List:
     vspace = sorted(vspace, key=lambda w: w[1], reverse=True)
 
     # filter vspace by threshold
-    sim_thre = 0.7
+    sim_thre = 0.55
     vspace = [x for x in vspace if x[1] >= sim_thre]
     if not vspace:
         return ''
 
     # choose random synonym
-    rand_idx = np.random.choice(np.arange(len(vspace)), size=1)
-    synonym = [vspace[x][0] for x in rand_idx][0]
-    return synonym
+    rand_idx = np.random.choice(np.arange(len(vspace)), size=num_syns)
+    synonyms = [vspace[x][0] for x in rand_idx]
+    #print(synonyms)
+    return synonyms
 
 
 def gen_synonyms(
@@ -133,24 +134,27 @@ def gen_synonyms(
 
     # choose random term subset
     n_terms = math.ceil(rep_rate * len(terms))
+    print('n_terms = ', n_terms)
 
     term_map = {x: x for x in terms}
+    print('Term Map - ', term_map)
     syn_map = {}
     for term in terms:
         if term and term in vecs:
+            print('term - ', term)
             if mode == 'wordvec':
-                synonym = _wordvec_syns(term)
+                synonyms = _wordvec_syns(term)
             elif mode == 'wordnet':
-                synonym = _wordnet_syns(term)
+                synonyms = _wordnet_syns(term)
 
             logger.debug(
                 '{}:_gen_synonyms: {} - {}'.format(
-                    __file__.split('/')[-1], term, synonym
+                    __file__.split('/')[-1], term, synonyms
                 )
             )
 
-            if synonym:
-                syn_map[synonym] = term
+            if synonyms:
+                syn_map[term] = synonyms
         else:
             logger.error(
                 '{}:_gen_synonyms: Input {} not found in loaded vectors'.format(
@@ -167,38 +171,23 @@ def gen_synonyms(
             n_terms = len(syn_map)
 
         # choose n_terms synonyms to replace
-        rand_idx = np.random.choice(
-            np.arange(len(syn_map)), size=n_terms, replace=False)
+        #rand_idx = np.random.choice(
+        #    np.arange(len(syn_map)), size=n_terms, replace=False)
 
-        syn_map = {
-            x[1]: x[0] for n, x in enumerate(syn_map.items())
-            if n in rand_idx
-        }
+        #syn_map = {
+        #    x[1]: x[0] for n, x in enumerate(syn_map.items())
+        #    if n in rand_idx
+        #}
 
         return syn_map # Modified to return a synonym map for the input string
 
-        '''
-        # replace terms in the original string
-        syn_terms = ' '.join(
-            [syn_map[x] if x in syn_map else x for x in sent.split()])
-
-        if syn_terms == sent:
-            return None
-        else:
-            return syn_terms
-        '''
             
-def replace_synonyms(input_str, important_score_dict, question_id, K, sampling_strategy = 'topK' ) -> str:
+def replace_synonyms(input_str, word_score_tuple_list, K, sampling_strategy = 'topK', num_unique_samples = 3) -> str:
 
     # POS Tagging to Mask Tokens
-    print('Sampling Strategy - ', sampling_strategy)
-    print('K = ', K)
-
     original_input_tokens = nltk.word_tokenize(input_str)
     pos_tagged_list_of_tuples = nltk.pos_tag(original_input_tokens)
-    print()
-    print(pos_tagged_list_of_tuples)
-    print()
+
     # [(name, 'NNP'), ..... ]
     masked_list = []
     for tup in pos_tagged_list_of_tuples:
@@ -206,21 +195,12 @@ def replace_synonyms(input_str, important_score_dict, question_id, K, sampling_s
         if(pos == 'NNP'):
             if word.lower() not in masked_list:
                 masked_list.append(word.lower())
-    print()
-    print('masked list - ', masked_list)
-    print()
 
     # Input tokens
     print()
     input_tokens = nltk.word_tokenize(input_str)
-    print('I/P Token Before lowercase - ', input_tokens)
     input_tokens  = [x.lower() for x in input_tokens]
-    print('I/P Token After lowercase - ', input_tokens)
-    # [(word, score)......]
-    word_score_tuple_list = important_score_dict[question_id]
-    print()
-    print('Unordered Tuple list - ', word_score_tuple_list)
-    print()
+
     # Sort by importance score
     if(sampling_strategy == 'topK'):
         word_score_tuple_list.sort(key=lambda x: x[1], reverse = True)
@@ -229,54 +209,52 @@ def replace_synonyms(input_str, important_score_dict, question_id, K, sampling_s
     elif(sampling_strategy == 'randomK'):
         random.shuffle(word_score_tuple_list)
 
-    print()
-    print('Sorted Tuple List - ', word_score_tuple_list)
-    print()
-
     #Get Synonym Map for input string
-    syn_map = gen_synonyms(input_str, 1)
-    print()
-    print('Syn Map - ', syn_map)
-    print()
+    syn_map = gen_synonyms(input_str)
 
-    for tup in (word_score_tuple_list):
-        word, score = tup
-        print()
-        print('Word - ', word)
-        if(K > 0):
-            if(word in masked_list):
-                pass
-            else:
-                if word in input_tokens:
-                    print('Word in Input Token')
-                    if(word in syn_map.keys()):
-                        print('Word in SynMap Keys')
-                        for i in range(len(input_tokens)):
-                            if(input_tokens[i] == word):
-                                input_tokens[i] = syn_map[word]
-                                K -= 1
-                                print('K = ', K)
+    list_unique_samples = []
+    for i in range(num_unique_samples):
+        k = K
+        copy_input_token = input_tokens.copy()
+        for tup in (word_score_tuple_list):
+            word, score = tup
+            if(k > 0):
+                if(word in masked_list):
+                    pass
+                else:
+                    if word in copy_input_token:
+                        if(word in syn_map.keys()):
+                            for i in range(len(copy_input_token)):
+                                if(copy_input_token[i] == word):
+                                    index = random.choice(range(len(syn_map[word])))
+                                    syn_word = syn_map[word][index]
+                                    copy_input_token[i] = syn_word
+                                    k -= 1
 
+        for i in range(len(original_input_tokens)):
+            if(copy_input_token[i] == original_input_tokens[i].lower()):
+                copy_input_token[i] = original_input_tokens[i]
+        modified_string = ' '.join([token for token in copy_input_token])
 
-    print('List of modified tokens')
-    for i in range(len(original_input_tokens)):
-        if(input_tokens[i] == original_input_tokens[i].lower()):
-            input_tokens[i] = original_input_tokens[i]
-    modified_string = ' '.join([token for token in input_tokens])
-    print(modified_string)
-    return modified_string
+        if modified_string not in list_unique_samples:
+            list_unique_samples.append(modified_string)
+
+    return list_unique_samples
+
 
 if __name__ == '__main__':
     #pass
     with open('/home/abijith/Downloads/SQuAD_v1.1_dev.pickle', mode='rb') as file:
         important_score_dict = pickle.load(file)
-    # data = {id : [(word1, score1), (word2, score2), ..... ]}
 
-    K = 5
-
+    K = 4
+    id = 0
     input_str  = 'How many Asus gp3 molecules leave in the fission cycle ?'
-    syn_rep_str = replace_synonyms(input_str, important_score_dict, 0 , K)
+    word_score_tuple_list = important_score_dict[id]
+
+    syn_rep_str = replace_synonyms(input_str, word_score_tuple_list, K, sampling_strategy='topK', num_unique_samples = 3)
     print()
     print('I/P - ', input_str)
     print('O/P - ', syn_rep_str)
     print()
+    
