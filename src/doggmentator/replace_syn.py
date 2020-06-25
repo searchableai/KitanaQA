@@ -103,7 +103,6 @@ def _wordvec_syns(term: str, num_syns: int=10) -> List:
     # choose random synonym
     rand_idx = np.random.choice(np.arange(len(vspace)), size=num_syns)
     synonyms = [vspace[x][0] for x in rand_idx]
-    #print(synonyms)
     return synonyms
 
 
@@ -134,14 +133,11 @@ def gen_synonyms(
 
     # choose random term subset
     n_terms = math.ceil(rep_rate * len(terms))
-    print('n_terms = ', n_terms)
 
     term_map = {x: x for x in terms}
-    print('Term Map - ', term_map)
     syn_map = {}
     for term in terms:
         if term and term in vecs:
-            print('term - ', term)
             if mode == 'wordvec':
                 synonyms = _wordvec_syns(term)
             elif mode == 'wordnet':
@@ -166,19 +162,6 @@ def gen_synonyms(
     if not syn_map:
         return None
     else:
-        # make sure n_terms doesn't exceed the available num syns
-        if len(syn_map) < n_terms:
-            n_terms = len(syn_map)
-
-        # choose n_terms synonyms to replace
-        #rand_idx = np.random.choice(
-        #    np.arange(len(syn_map)), size=n_terms, replace=False)
-
-        #syn_map = {
-        #    x[1]: x[0] for n, x in enumerate(syn_map.items())
-        #    if n in rand_idx
-        #}
-
         return syn_map # Modified to return a synonym map for the input string
 
             
@@ -197,7 +180,6 @@ def replace_synonyms(input_str, word_score_tuple_list, K, sampling_strategy = 't
                 masked_list.append(word.lower())
 
     # Input tokens
-    print()
     input_tokens = nltk.word_tokenize(input_str)
     input_tokens  = [x.lower() for x in input_tokens]
 
@@ -241,11 +223,73 @@ def replace_synonyms(input_str, word_score_tuple_list, K, sampling_strategy = 't
 
     return list_unique_samples
 
+def replace_with_misspellings(input_str, word_score_tuple_list,  mis_spel_dict, K, sampling_strategy = 'topK'):
+    # POS Tagging to Mask Tokens
+    original_input_tokens = nltk.word_tokenize(input_str)
+    pos_tagged_list_of_tuples = nltk.pos_tag(original_input_tokens)
+
+    # [(name, 'NNP'), ..... ]
+    masked_list = []
+    for tup in pos_tagged_list_of_tuples:
+        word, pos = tup
+        if (pos == 'NNP'):
+            if word.lower() not in masked_list:
+                masked_list.append(word.lower())
+
+    # Input tokens
+    input_tokens = nltk.word_tokenize(input_str)
+    input_tokens = [x.lower() for x in input_tokens]
+
+    # Sort by importance score
+    if (sampling_strategy == 'topK'):
+        word_score_tuple_list.sort(key=lambda x: x[1], reverse=True)
+    elif (sampling_strategy == 'bottomK'):
+        word_score_tuple_list.sort(key=lambda x: x[1], reverse=False)
+    elif (sampling_strategy == 'randomK'):
+        random.shuffle(word_score_tuple_list)
+
+    for tup in (word_score_tuple_list):
+        word, score = tup
+        if(K > 0):
+            if(word in masked_list):
+                pass
+            else:
+                if word in input_tokens:
+                        if(word in mis_spelt_dict.keys()):
+                            for i in range(len(input_tokens)):
+                                if(input_tokens[i] == word):
+                                    index = random.choice(range(len(mis_spelt_dict[word])))
+                                    mis_spelt_word = mis_spelt_dict[word][index]
+                                    input_tokens[i] = mis_spelt_word
+                                    K -= 1
+
+        for i in range(len(original_input_tokens)):
+            if(input_tokens[i] == original_input_tokens[i].lower()):
+                input_tokens[i] = original_input_tokens[i]
+        modified_string = ' '.join([token for token in input_tokens])
+
+
+    return modified_string
+
+
+
+
+
 
 if __name__ == '__main__':
     #pass
+
+    # Loading Important Score Dictionary
     with open('/home/abijith/Downloads/SQuAD_v1.1_dev.pickle', mode='rb') as file:
         important_score_dict = pickle.load(file)
+    # Loading Mis-spelt Words Dictionary
+    with open('/home/abijith/Downloads/wiki.p', mode='rb') as file:
+        mis_spelt_dict = pickle.load(file)
+    with open('/home/abijith/Downloads/brikbeck.p', mode='rb') as file:
+        brik_beck_dict = pickle.load(file)
+    # Combining the two dicts
+    mis_spelt_dict.update(brik_beck_dict)
+
 
     K = 4
     id = 0
@@ -253,8 +297,9 @@ if __name__ == '__main__':
     word_score_tuple_list = important_score_dict[id]
 
     syn_rep_str = replace_synonyms(input_str, word_score_tuple_list, K, sampling_strategy='topK', num_unique_samples = 3)
+    mis_spelt_str = replace_with_misspellings(input_str, word_score_tuple_list,mis_spelt_dict, K, sampling_strategy='topK')
     print()
     print('I/P - ', input_str)
     print('O/P - ', syn_rep_str)
+    print('O/P - ', mis_spelt_str)
     print()
-    
