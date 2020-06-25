@@ -247,13 +247,15 @@ def replace_with_synonyms(
     tokens = result_dict['token']
     masked_vector = [1 if (ner).startswith('I') else 0 for ner in result_dict['ner']]
 
+    # List Comprehension
+
     indexed_word_score_tuple_list = []
     for i in range(len(word_score_tuple_list)):
         word, score = word_score_tuple_list[i]
         new_tuple = (word, score, i, masked_vector[i])
         indexed_word_score_tuple_list.append(new_tuple)
 
-    # Sort by importance score
+    # Sort by importance score funtion
     if(sampling_strategy == 'topK'):
         indexed_word_score_tuple_list.sort(key=lambda x: x[1], reverse = True)
     elif(sampling_strategy == 'bottomK'):
@@ -272,11 +274,11 @@ def replace_with_synonyms(
             if(_wordvec_list_syns(tup[0]) != '' and tup[0] not in synonym_map and masked_vector[tup[2]] != 1):
                 synonym_map[tup[0]] = _wordvec_list_syns(tup[0], 3 * num_output_samples)
 
+
     set_of_output_samples = set()
-    i = j = 0 # Counter to keep a track of length of the word_score_tuple_list
+    i = j = 0 # Counter 'i' to keep a track of length of the word_score_tuple_list
     # j = 0 # Counter to keep a track of the number of terms replaced
     # Checks if both the required number of terms are replaced and required number of unique samples are generated
-    new_word_index_tuple_list = []
 
     while(i < len(indexed_word_score_tuple_list) and len(set_of_output_samples) < num_output_samples):
         if(i == 0):
@@ -300,14 +302,70 @@ def replace_with_synonyms(
         #print(set_of_output_samples)
     return set_of_output_samples
 
+
+def replace_with_mis_spellings(
+        sentence: str,
+        word_score_tuple_list: list,
+        misspellings_dict: dict,
+        num_terms_to_replace: int = 1,
+        sampling_strategy: str = 'topK') -> str:
+    """Generate list of strings by replacing specified number of terms with their synonyms"""
+
+    # extract entities in the input sentence to mask
+    result_dict = get_entities(sentence)
+    tokens = result_dict['token']
+    masked_vector = [1 if (ner).startswith('I') else 0 for ner in result_dict['ner']]
+
+
+    # List Comprehension
+    indexed_word_score_tuple_list = []
+    for i in range(len(word_score_tuple_list)):
+        word, score = word_score_tuple_list[i]
+        new_tuple = (word, score, i, masked_vector[i])
+        indexed_word_score_tuple_list.append(new_tuple)
+
+    # Sort by importance score - Make a function
+    if(sampling_strategy == 'topK'):
+        indexed_word_score_tuple_list.sort(key=lambda x: x[1], reverse = True)
+    elif(sampling_strategy == 'bottomK'):
+        indexed_word_score_tuple_list.sort(key=lambda x: x[1], reverse = False)
+    elif(sampling_strategy == 'randomK'):
+        random.shuffle(indexed_word_score_tuple_list)
+    # Creating a synonym map for num of terms to replace
+    # It can handle cases where a word has no synonym - considers the next highest word
+    for i in range(len(indexed_word_score_tuple_list)):
+        word, score, index, masked_value = indexed_word_score_tuple_list[i]
+        # Only replaces unique term if same terms with different scores exists and is masked do not get synonym
+        if(word in misspellings_dict.keys() and masked_vector[index] != 1 and num_terms_to_replace > 0):
+            new_tuple = (misspellings_dict[word][random.choice(range(len(misspellings_dict[word])))], score, index, masked_value)
+            indexed_word_score_tuple_list[i] = new_tuple
+            num_terms_to_replace -= 1
+
+    indexed_word_score_tuple_list.sort(key=lambda x: x[2], reverse = False)
+    new_string = ' '.join(tup[0] for tup in indexed_word_score_tuple_list)
+    return new_string
+
 if __name__ == '__main__':
     # Loading Important Score Dictionary
     with open('/home/abijith/Downloads/SQuAD_v1.1_dev.pickle', mode='rb') as file:
         important_score_dict = pickle.load(file)
+
+    with open('/home/abijith/Downloads/wiki.p', mode='rb') as file:
+        mis_spelt_dict = pickle.load(file)
+    with open('/home/abijith/Downloads/brikbeck.p', mode='rb') as file:
+        brik_beck_dict = pickle.load(file)
+    # Combining the two dicts
+    mis_spelt_dict.update(brik_beck_dict)
+
+
     K = 3
     id = 0
-    sent  = 'How many g3p molecules leave in the cycle ?'
+    sent  = 'how many g3p molecules leave the cycle ?'
     word_score_tuple_list = important_score_dict[id]
     sample_set = replace_with_synonyms(sent, word_score_tuple_list, K, sampling_strategy = 'topK', num_output_samples = 5)
     print(word_score_tuple_list)
     print(sample_set)
+
+    str2 = replace_with_mis_spellings(sent, word_score_tuple_list, mis_spelt_dict, K, sampling_strategy = 'topK')
+
+    print(str2)
