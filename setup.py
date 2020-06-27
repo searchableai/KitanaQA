@@ -28,6 +28,6 @@ setup(
     },
     description='Data augmentation for language models',
     package_data={
-        'doggmentator':['support/*.txt']
+        'doggmentator':['support/*.txt','support/*.json']
     },
 )
