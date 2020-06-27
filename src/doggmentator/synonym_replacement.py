@@ -1,33 +1,30 @@
 import pkg_resources
+import logging
+import time
+import sys
+import sparknlp
 import re
+import random
 import nltk
-import numpy as np
+import pickle
 import math
-from typing import List
+import itertools
+import re
+import numpy as np
+from typing import List, Dict, Tuple
 from numpy import dot
 from numpy.linalg import norm
 from stop_words import get_stop_words
 from nltk.corpus import stopwords, wordnet
 from nlp_utils.firstnames import firstnames
 from doggmentator import get_logger
-import logging
-# For Spark NLP
-import sys
-import time
-#Spark NLP
-import sparknlp
 from sparknlp.pretrained import PretrainedPipeline
 from sparknlp.annotator import *
 from sparknlp.common import RegexRule
 from sparknlp.base import *
-import random
-import pickle
-
-
 
 # init logging
 logger = get_logger()
-
 
 # stopwords and common names lists
 stop_words = list(get_stop_words('en'))  # have around 900 stopwords
@@ -37,23 +34,6 @@ stop_words = list(set(stop_words))
 remove_list = firstnames+stop_words
 remove_list = [x.lower() for x in remove_list]
 
-# load constrained word vectors
-# Counter-fitting Word Vectors to Linguistic Constraints
-# https://arxiv.org/pdf/1603.00892.pdf
-data_file = pkg_resources.resource_filename(
-    'doggmentator', 'support/glove.txt')
-
-logger.debug(
-    '{}: loading pkg data {}'.format(
-        __file__.split('/')[-1], data_file)
-    )
-
-vecs = {}
-f = open(data_file, 'r')
-
-for n, line in enumerate(f):
-    line = line.strip().split()
-    vecs[line[0].lower()] = np.asarray([float(x) for x in line[1:]])
 
 def _check_sent(sent: str) -> str:
     """Run sanity checks on input and sanitize"""
@@ -76,7 +56,7 @@ def _cosine_similarity(
     return dot(v1, v2) / (norm(v1) * norm(v2))
 
 
-def _wordnet_syns(term: str, num_syns: int=1) -> List:
+def _wordnet_syns(term: str, num_syns: int=10) -> List:
     """Find synonyms using WordNet"""
     synonyms = []
     for syn in wordnet.synsets(term):
@@ -84,288 +64,296 @@ def _wordnet_syns(term: str, num_syns: int=1) -> List:
             lemma_name = ' '.join([x.lower() for x in lemma.name().split('_')])
             if lemma_name not in synonyms and lemma_name != term:
                 synonyms.append(lemma_name)
-    rand_idx = np.random.choice(np.arange(len(synonyms)), size=num_syns)
+    rand_idx = np.random.choice(len(synonyms), size=num_syns)
     return [synonyms[x] for x in rand_idx][0]
 
-# Output is a string and 'num_syns' is not used just returns the first element of a singleton list
-def _wordvec_syns(term: str, num_syns: int=1) -> List:
+
+class WordVecSyns:
     """Find synonyms using word vectors"""
+    def __init__(self):
+        self._vecs = self._load_embeddings()
 
-    # get word vector
-    search_vector = vecs[term]
-
-    # filter vectors
-    vspace = [w for w in vecs.items() if w[0] != term]
-
-    # sort (desc) vectors by similarity score
-    word_dict = {
-        x[0]: _cosine_similarity(x[1], search_vector) for x in vspace}
-    vspace = [(x[0], word_dict[x[0]]) for x in vspace]
-    vspace = sorted(vspace, key=lambda w: w[1], reverse=True)
-
-    # filter vspace by threshold
-    sim_thre = 0.7
-    vspace = [x for x in vspace if x[1] >= sim_thre]
-    if not vspace:
-        return ''
-
-    # choose random synonym
-    rand_idx = np.random.choice(np.arange(len(vspace)), size=1)
-    synonym = [vspace[x][0] for x in rand_idx][0]
-    return synonym
-
-# Modified _wordvec_syns to return a list of synonyms equal to 'num_syns' parameter
-## Same with 'WordNet' but have modifying that
-
-def _wordvec_list_syns(term: str, num_syns: int=1) -> List:
-    """Find synonyms using word vectors"""
-    # get word vector
-    try:
-        search_vector = vecs[term]
-    except:
-        return ''
-
-    # filter vectors
-    vspace = [w for w in vecs.items() if w[0] != term]
-
-    # sort (desc) vectors by similarity score
-    word_dict = {
-        x[0]: _cosine_similarity(x[1], search_vector) for x in vspace}
-    vspace = [(x[0], word_dict[x[0]]) for x in vspace]
-    vspace = sorted(vspace, key=lambda w: w[1], reverse=True)
-
-    # filter vspace by threshold
-    sim_thre = 0.7
-    vspace = [x for x in vspace if x[1] >= sim_thre]
-    if not vspace:
-        return ''
-
-    # choose random synonym
-    rand_idx = np.random.choice(np.arange(len(vspace)), size=num_syns)
-    synonyms = [vspace[x][0] for x in rand_idx]
-    return synonyms
-
-
-def gen_synonyms(
-        sentence: str,
-        rep_rate: float = 0.1,
-        mode: str = 'wordvec') -> str:
-    """Generate terms similar to an input string using cosine similarity"""
-
-    # sanity check and sanitize
-    sent = _check_sent(sentence)
-    terms = [x for x in sent.split() if x not in remove_list]
-
-    if not terms:
-        logger.error(
-            '{}:_gen_synonyms: input {} is null or invalid'.format(
-                __file__.split('/')[-1], terms
+    def _load_embeddings(self):
+        """ 
+        Load constrained word vectors
+        ref:    Counter-fitting Word Vectors to Linguistic Constraints
+                https://arxiv.org/pdf/1603.00892.pdf
+        """
+        data_file = pkg_resources.resource_filename(
+            'doggmentator', 'support/glove.txt')
+        logger.debug(
+            '{}: loading pkg data {}'.format(
+                __file__.split('/')[-1], data_file)
             )
-        )
-        return None
-    elif mode not in ['wordnet', 'wordvec']:
-        logger.error(
-            '{}:_gen_synonyms: mode {} not supported'.format(
-                __file__.split('/')[-1], terms
-            )
-        )
-        return None
+        vecs = {}
+        f = open(data_file, 'r')
+        for n, line in enumerate(f):
+            line = line.strip().split()
+            vecs[line[0].lower().strip()] = np.asarray([float(x) for x in line[1:]])
+        self.vecs = vecs
 
-    # choose random term subset
-    n_terms = math.ceil(rep_rate * len(terms))
-
-    term_map = {x: x for x in terms}
-    syn_map = {}
-    for term in terms:
-        if term and term in vecs:
-            if mode == 'wordvec':
-                synonym = _wordvec_syns(term)
-            elif mode == 'wordnet':
-                synonym = _wordnet_syns(term)
-
-            logger.debug(
-                '{}:_gen_synonyms: {} - {}'.format(
-                    __file__.split('/')[-1], term, synonym
-                )
-            )
-
-            if synonym:
-                syn_map[synonym] = term
+    def get_synonyms(
+            self,
+            term: str,
+            num_syns: int=10,
+            similarity_thre: float=0.7) -> List:
+        """ Generate synonyms for an input term """
+        if term in self.vecs:
+            search_vector = self.vecs[term]
         else:
-            logger.error(
-                '{}:_gen_synonyms: Input {} not found in loaded vectors'.format(
-                    __file__.split('/')[-1], term
-                )
-            )
+            return []
 
-    # check if any synonyms were found
-    if not syn_map:
-        return None
-    else:
-        # make sure n_terms doesn't exceed the available num syns
-        if len(syn_map) < n_terms:
-            n_terms = len(syn_map)
+        # Filter vectors
+        vspace = [w for w in self.vecs.items() if w[0] != term]
 
-        # choose n_terms synonyms to replace
-        rand_idx = np.random.choice(
-            np.arange(len(syn_map)), size=n_terms, replace=False)
+        # Sort (desc) vectors by similarity score
+        word_dict = {
+            x[0]: _cosine_similarity(x[1], search_vector) for x in vspace}
+        vspace = [(x[0], word_dict[x[0]]) for x in vspace]
+        vspace = sorted(vspace, key=lambda w: w[1], reverse=True)
 
-        syn_map = {
-            x[1]: x[0] for n, x in enumerate(syn_map.items())
-            if n in rand_idx
-        }
+        # Filter vspace by threshold
+        vspace = [x for x in vspace if x[1] >= similarity_thre]
+        if not vspace:
+            return
 
-        # replace terms in the original string
-        syn_terms = ' '.join(
-            [syn_map[x] if x in syn_map else x for x in sent.split()])
+        # Choose top synonyms
+        synonyms = [x[0] for x in vspace[:num_syns]]
+        return synonyms
 
-        if syn_terms == sent:
-            return None
-        else:
-            return syn_terms
 
-def get_entities(
-        sentence: str) -> dict:
+def get_entities(sentence: str) -> Dict:
+    """ Tokenize and annotate sentence """
+
+    # Start Spark session with Spark NLP
+    allowed_tags = ['PER','LOC','ORG','MISC']
     spark = sparknlp.start()
     pipeline = PretrainedPipeline('recognize_entities_dl', lang='en')
+
+    # Annotate your testing dataset
     result = pipeline.annotate(sentence)
-    return result
+    toks = result['token']
+    mask = [
+        1 if (
+            any([y in x for y in allowed_tags])
+            or not toks[i].isalnum()
+        )
+        else 0
+        for i,x in enumerate(result['ner'])
+    ]
+    return mask, toks
 
 
-
-def replace_with_synonyms(
-        sentence: str,
-        word_score_tuple_list: list,
-        num_terms_to_replace: int = 1,
-        sampling_strategy: str = 'topK',
-        num_output_samples: int = 1,
-        mode: str = 'wordvec') -> List:
-    """Generate list of strings by replacing specified number of terms with their synonyms"""
-
-    # extract entities in the input sentence to mask
-    result_dict = get_entities(sentence)
-    tokens = result_dict['token']
-    masked_vector = [1 if (ner).startswith('I') else 0 for ner in result_dict['ner']]
-
-    # List Comprehension
-
-    indexed_word_score_tuple_list = []
-    for i in range(len(word_score_tuple_list)):
-        word, score = word_score_tuple_list[i]
-        new_tuple = (word, score, i, masked_vector[i])
-        indexed_word_score_tuple_list.append(new_tuple)
-
-    # Sort by importance score funtion
-    if(sampling_strategy == 'topK'):
-        indexed_word_score_tuple_list.sort(key=lambda x: x[1], reverse = True)
-    elif(sampling_strategy == 'bottomK'):
-        indexed_word_score_tuple_list.sort(key=lambda x: x[1], reverse = False)
-    elif(sampling_strategy == 'randomK'):
-        random.shuffle(indexed_word_score_tuple_list)
-
-    # Creating a synonym map for num of terms to replace
-    # It can handle cases where a word has no synonym - considers the next highest word
-    synonym_map = {}
-    for tup in indexed_word_score_tuple_list:
-        if(len(synonym_map) > num_terms_to_replace):
-            break
+def get_scores(
+        tokens: List[str],
+        scores: List[Tuple]=None) -> List[Tuple]:
+    """ Initialize and sanitize importance scores """
+    if not scores:
+        # Random initialization
+        scores = np.random.rand(
+            len(tokens)
+        )
+        scores = [
+            x
+            if tokens[i] not in remove_list
+            else 0
+            for i,x in enumerate(scores)
+        ]
+        scores = [
+            x/sum(scores)
+            for x in scores
+        ]
+        scores = list(zip(tokens, scores))
+    else:                         
+        if len(scores) != len(tokens):
+            logger.error(    
+                '{}:get_scores: ({},{}) mismatch in entity vec and importance score dims'.format(
+                    __file__.split('/')[-1],
+                    len(tokens),
+                    len(scores)
+                )      
+            ) 
+            scores = None
         else:
-            # Only replaces unique term if same terms with different scores exists and is masked do not get synonym
-            if(_wordvec_list_syns(tup[0]) != '' and tup[0] not in synonym_map and masked_vector[tup[2]] != 1):
-                synonym_map[tup[0]] = _wordvec_list_syns(tup[0], 3 * num_output_samples)
+            # Ensure score types, norm, sgn
+            scores = [   
+                (x[0],abs(float(x[1])))
+                for x in scores
+            ]
+            scores = [
+                (x[0],x[1]/sum(scores))
+                for x in scores
+            ]
+    return scores
 
 
-    set_of_output_samples = set()
-    i = j = 0 # Counter 'i' to keep a track of length of the word_score_tuple_list
-    # j = 0 # Counter to keep a track of the number of terms replaced
-    # Checks if both the required number of terms are replaced and required number of unique samples are generated
-
-    while(i < len(indexed_word_score_tuple_list) and len(set_of_output_samples) < num_output_samples):
-        if(i == 0):
-            copy_indexed_word_score_tuple_list = indexed_word_score_tuple_list.copy()
-        word, score, index, masked_value  = indexed_word_score_tuple_list[i]
-
-        # Checking the masked_one_hot_vector
-        if(masked_vector[index] != 1 and j < num_terms_to_replace and word in synonym_map):
-            new_tuple =  (synonym_map[word][random.choice(range(len(synonym_map[word])))],score, index, masked_value)
-            copy_indexed_word_score_tuple_list[i] = (new_tuple)
-            j += 1
-        i += 1
-
-        if(i == len(indexed_word_score_tuple_list) and len(set_of_output_samples) < num_output_samples):
-            copy_indexed_word_score_tuple_list.sort(key=lambda x: x[2], reverse = False)
-            new_string = ' '.join(tup[0] for tup in copy_indexed_word_score_tuple_list)
-            set_of_output_samples.add(new_string)
-            j = 0
-            i = 0
-
-        #print(set_of_output_samples)
-    return set_of_output_samples
-
-
-def replace_with_mis_spellings(
+def replace_terms(
         sentence: str,
-        word_score_tuple_list: list,
-        misspellings_dict: dict,
-        num_terms_to_replace: int = 1,
-        sampling_strategy: str = 'topK') -> str:
+        rep_type: str='synonym',
+        importance_scores: List=None,
+        num_replacements: int=1,
+        num_output_sents: int=1,
+        sampling_strategy: str='random') -> List:
     """Generate list of strings by replacing specified number of terms with their synonyms"""
 
-    # extract entities in the input sentence to mask
-    result_dict = get_entities(sentence)
-    tokens = result_dict['token']
-    masked_vector = [1 if (ner).startswith('I') else 0 for ner in result_dict['ner']]
+    # Extract entities in the input sentence to mask
+    masked_vector, tokens = get_entities(sentence)
 
+    # Initialize sampling scores
+    importance_scores = get_scores(tokens, importance_scores)
 
-    # List Comprehension
-    indexed_word_score_tuple_list = []
-    for i in range(len(word_score_tuple_list)):
-        word, score = word_score_tuple_list[i]
-        new_tuple = (word, score, i, masked_vector[i])
-        indexed_word_score_tuple_list.append(new_tuple)
+    if not importance_scores:
+        return
 
-    # Sort by importance score - Make a function
-    if(sampling_strategy == 'topK'):
-        indexed_word_score_tuple_list.sort(key=lambda x: x[1], reverse = True)
-    elif(sampling_strategy == 'bottomK'):
-        indexed_word_score_tuple_list.sort(key=lambda x: x[1], reverse = False)
-    elif(sampling_strategy == 'randomK'):
-        random.shuffle(indexed_word_score_tuple_list)
-    # Creating a synonym map for num of terms to replace
-    # It can handle cases where a word has no synonym - considers the next highest word
-    for i in range(len(indexed_word_score_tuple_list)):
-        word, score, index, masked_value = indexed_word_score_tuple_list[i]
-        # Only replaces unique term if same terms with different scores exists and is masked do not get synonym
-        if(word in misspellings_dict.keys() and masked_vector[index] != 1 and num_terms_to_replace > 0):
-            new_tuple = (misspellings_dict[word][random.choice(range(len(misspellings_dict[word])))], score, index, masked_value)
-            indexed_word_score_tuple_list[i] = new_tuple
-            num_terms_to_replace -= 1
+    # Add index and mask to importance scores
+    term_score_index = [
+        (word[0], i, masked_vector[i])
+        for i,word in enumerate(importance_scores)
+    ]
 
-    indexed_word_score_tuple_list.sort(key=lambda x: x[2], reverse = False)
-    new_string = ' '.join(tup[0] for tup in indexed_word_score_tuple_list)
-    return new_string
+    # Store only scores for later sampling
+    importance_scores = [
+        x[1] if not masked_vector[i] else 0  # set masked scores to zero
+        for i,x in enumerate(importance_scores)
+    ]
+
+    # Renormalize
+    importance_scores = [
+        x/sum(importance_scores)
+        for x in importance_scores
+    ]
+
+    # Invert scores if sampling least important terms
+    if sampling_strategy == 'bottomK':
+        importance_scores = [
+            1/x if x>0 else 0
+            for x in importance_scores
+        ]
+
+    # Candidate terms for synonym replacement
+    rep_term_indices = [
+        w[1] for w in term_score_index if not w[2]
+    ]
+
+    # Create List of Lists of term variants
+    # TODO: test misspellings with support data
+    if rep_type == 'misspelling':
+        try:
+            misspellings = _load_misspellings()
+        except Exception as e:
+            logger.error(
+                '{}:replace_terms: unable to load misspellings'.format(
+                    __file__.split('/')[-1]
+                )
+            )
+            return
+
+        term_variants = {
+            x[0]:misspellings.get(x[0],x[0])
+            if (i in rep_term_indices
+                and not masked_vector[i])
+            else x[0]
+            for i,x in enumerate(term_score_index)
+        }
+    elif rep_type == 'synonym':
+        wordvec = WordVecSyns()
+        synonyms = {
+            x[0]:wordvec.get_synonyms(x[0])
+            for i,x in enumerate(term_score_index)
+        }
+        term_variants = {
+            x[0]:synonyms.get(x[0])
+            if (i in rep_term_indices
+                and not masked_vector[i]
+                and synonyms.get(x[0]))
+            else []
+            for i,x in enumerate(term_score_index)
+        }
+
+        # Set scores to zero for all terms w/o synonyms
+        importance_scores = [
+            x
+            if (
+                term_score_index[i][0] in term_variants
+                and len(term_variants[term_score_index[i][0]])>0
+            )
+            else 0
+            for i,x in enumerate(importance_scores)
+        ]
+
+        # Renormalize
+        importance_scores = [
+            x/sum(importance_scores)
+            for x in importance_scores
+        ]
+
+    # Create a List of Lists of all variants
+    candidate_variants = [
+        v+[k]
+        for k,v in term_variants.items()
+    ]
+    # Check the total number of variants
+    candidate_sents = list(
+        itertools.product(*candidate_variants)
+    )
+
+    # Set number of output variants to the total possible
+    if len(candidate_sents) < num_output_sents:
+        num_output_sents = len(candidate_sents)
+
+    max_attempts = 10
+    counter = 0
+    new_sentences = set()
+    while len(new_sentences) < num_output_sents:
+        if counter > max_attempts:
+            break
+
+        # Select terms to replace
+        rnd_indices = np.random.choice(
+            len(term_score_index),
+            size=num_replacements,
+            replace=False,
+            p=importance_scores
+        )
+        replace_terms = [
+            term_score_index[i][0]
+            for i in rnd_indices
+        ]
+        
+        # Create List of Lists of term variants
+        term_combinations = [
+            term_variants.get(x[0], [x[0]])
+            if x[0] in replace_terms
+            else [x[0]]
+            for i,x in enumerate(term_score_index)
+        ]
+        
+        # Generate combinatorial variants
+        candidate_sents = list(
+            itertools.product(*term_combinations)
+        )
+
+        for sent in candidate_sents:
+            new_sentences.add(' '.join(sent))
+        counter += 1
+            
+    # Shuffle permutations, sanitize and slice
+    new_sentences = list(new_sentences)
+    random.shuffle(new_sentences)
+    new_sentences = [
+        re.sub(r'([A-Za-z0-9])(\s+)([^A-Za-z0-9])', r'\1\3', x)
+        for x in new_sentences[:num_output_sents]
+    ]
+    if len(new_sentences) < num_output_sents:
+        logger.debug(
+            '{}:replace_terms: unable to generate num_output_sents {}'.format(
+                __file__.split('/')[-1],
+                len(new_sentences)
+            )
+        )
+    return new_sentences
+
 
 if __name__ == '__main__':
-    # Loading Important Score Dictionary
-    with open('/home/abijith/Downloads/SQuAD_v1.1_dev.pickle', mode='rb') as file:
-        important_score_dict = pickle.load(file)
-
-    with open('/home/abijith/Downloads/wiki.p', mode='rb') as file:
-        mis_spelt_dict = pickle.load(file)
-    with open('/home/abijith/Downloads/brikbeck.p', mode='rb') as file:
-        brik_beck_dict = pickle.load(file)
-    # Combining the two dicts
-    mis_spelt_dict.update(brik_beck_dict)
-
-
-    K = 3
-    id = 0
-    sent  = 'how many g3p molecules leave the cycle ?'
-    word_score_tuple_list = important_score_dict[id]
-    sample_set = replace_with_synonyms(sent, word_score_tuple_list, K, sampling_strategy = 'topK', num_output_samples = 5)
-    print(word_score_tuple_list)
-    print(sample_set)
-
-    str2 = replace_with_mis_spellings(sent, word_score_tuple_list, mis_spelt_dict, K, sampling_strategy = 'topK')
-
-    print(str2)
+    sent  = 'how many g3p molecules leave the cycle?'
+    print(replace_terms(sent, num_output_sents=10, num_replacements=2))
