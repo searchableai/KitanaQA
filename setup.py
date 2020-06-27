@@ -16,6 +16,8 @@ setup(
         'numpy',
         'nltk',
         'stop-words',
+        'pyspark==2.4.0',
+        'spark-nlp==2.5.2'
     ],
     extras_require={
         'dev': [
