@@ -1,27 +1,22 @@
 import pkg_resources
-import logging
-import time
-import sys
 import sparknlp
 import re
 import random
-import nltk
-import pickle
-import math
 import itertools
 import re
+import json
 import numpy as np
 from typing import List, Dict, Tuple
 from numpy import dot
 from numpy.linalg import norm
 from stop_words import get_stop_words
 from nltk.corpus import stopwords, wordnet
-from nlp_utils.firstnames import firstnames
-from doggmentator import get_logger
 from sparknlp.pretrained import PretrainedPipeline
 from sparknlp.annotator import *
 from sparknlp.common import RegexRule
 from sparknlp.base import *
+from doggmentator.nlp_utils.firstnames import firstnames
+from doggmentator import get_logger
 
 # init logging
 logger = get_logger()
@@ -68,10 +63,46 @@ def _wordnet_syns(term: str, num_syns: int=10) -> List:
     return [synonyms[x] for x in rand_idx][0]
 
 
-class WordVecSyns:
-    """Find synonyms using word vectors"""
+class MisspReplace:
+    """ Replace commonly misspelled terms """
     def __init__(self):
-        self._vecs = self._load_embeddings()
+        self._missp = None
+        self._load_misspellings()
+
+    def _load_misspellings(self):
+        """ 
+        Load dict of term misspellings
+        ref:    wiki, brikbeck
+        """
+        data_file = pkg_resources.resource_filename(
+            'doggmentator', 'support/missp.json')
+        logger.debug(
+            '{}: loading pkg data {}'.format(
+                __file__.split('/')[-1], data_file)
+            )
+        with open(data_file, 'r') as f:
+            self._missp = json.load(f)
+
+    def get_misspellings(
+            self,
+            term: str,
+            num_missp: int=10) -> List:
+        """ Generate misspellings for an input term """
+
+        # Num misspellings must be gte 1
+        num_missp = min(num_missp, 1)
+
+        if term in self._missp:
+            return self._missp[term][:num_missp]
+        else:
+            return []
+
+
+class WordVecSyns:
+    """ Find synonyms using word vectors """
+    def __init__(self):
+        self._vecs = None
+        self._load_embeddings()
 
     def _load_embeddings(self):
         """ 
@@ -90,7 +121,7 @@ class WordVecSyns:
         for n, line in enumerate(f):
             line = line.strip().split()
             vecs[line[0].lower().strip()] = np.asarray([float(x) for x in line[1:]])
-        self.vecs = vecs
+        self._vecs = vecs
 
     def get_synonyms(
             self,
@@ -98,13 +129,17 @@ class WordVecSyns:
             num_syns: int=10,
             similarity_thre: float=0.7) -> List:
         """ Generate synonyms for an input term """
-        if term in self.vecs:
-            search_vector = self.vecs[term]
+
+        # Number of synonyms must be gte 1
+        num_syns = min(num_syns, 1)
+
+        if term in self._vecs:
+            search_vector = self._vecs[term]
         else:
             return []
 
         # Filter vectors
-        vspace = [w for w in self.vecs.items() if w[0] != term]
+        vspace = [w for w in self._vecs.items() if w[0] != term]
 
         # Sort (desc) vectors by similarity score
         word_dict = {
@@ -146,6 +181,7 @@ def get_entities(sentence: str) -> Dict:
 
 def get_scores(
         tokens: List[str],
+        mode: str='random',
         scores: List[Tuple]=None) -> List[Tuple]:
     """ Initialize and sanitize importance scores """
     if not scores:
@@ -159,6 +195,8 @@ def get_scores(
             else 0
             for i,x in enumerate(scores)
         ]
+        
+        # Normalize
         scores = [
             x/sum(scores)
             for x in scores
@@ -176,15 +214,30 @@ def get_scores(
             scores = None
         else:
             # Ensure score types, norm, sgn
+            tokens = [x[0] for x in scores]
             scores = [   
-                (x[0],abs(float(x[1])))
+                abs(float(x[1]))
                 for x in scores
             ]
             scores = [
                 (x[0],x[1]/sum(scores))
                 for x in scores
             ]
-    return scores
+
+            # Invert scores if sampling least important terms
+            if sampling_strategy == 'bottomK':
+                scores = [
+                    1/x if x>0 else 0
+                    for x in scores
+                ]
+
+            # Normalize
+            scores = [
+                x/sum(scores)
+                for x in scores
+            ]
+            scores = list(zip(tokens, scores))
+    return scores  # [(tok, score),...]
 
 
 def replace_terms(
@@ -200,7 +253,7 @@ def replace_terms(
     masked_vector, tokens = get_entities(sentence)
 
     # Initialize sampling scores
-    importance_scores = get_scores(tokens, importance_scores)
+    importance_scores = get_scores(tokens, sampling_strategy, importance_scores)
 
     if not importance_scores:
         return
@@ -217,19 +270,6 @@ def replace_terms(
         for i,x in enumerate(importance_scores)
     ]
 
-    # Invert scores if sampling least important terms
-    if sampling_strategy == 'bottomK':
-        importance_scores = [
-            1/x if x>0 else 0
-            for x in importance_scores
-        ]
-
-    # Renormalize
-    importance_scores = [
-        x/sum(importance_scores)
-        for x in importance_scores
-    ]
-
     # Candidate terms for synonym replacement
     rep_term_indices = [
         w[1] for w in term_score_index if not w[2]
@@ -239,7 +279,7 @@ def replace_terms(
     # TODO: test misspellings with support data
     if rep_type == 'misspelling':
         try:
-            misspellings = _load_misspellings()
+            missp = MisspReplace()
         except Exception as e:
             logger.error(
                 '{}:replace_terms: unable to load misspellings'.format(
@@ -248,15 +288,30 @@ def replace_terms(
             )
             return
 
+        misspellings = {
+            x[0]:missp.get_misspellings(x[0])
+            for i,x in enumerate(term_score_index)
+        }
+
         term_variants = {
-            x[0]:misspellings.get(x[0],x[0])
+            x[0]:misspellings.get(x[0])
             if (i in rep_term_indices
-                and not masked_vector[i])
-            else x[0]
+                and not masked_vector[i]
+                and misspellings.get(x[0]))
+            else []
             for i,x in enumerate(term_score_index)
         }
     elif rep_type == 'synonym':
-        wordvec = WordVecSyns()
+        try:
+            wordvec = WordVecSyns()
+        except Exception as e:
+            logger.error(
+                '{}:replace_terms: unable to load word vectors'.format(
+                    __file__.split('/')[-1]
+                )   
+            )   
+            return
+
         synonyms = {
             x[0]:wordvec.get_synonyms(x[0])
             for i,x in enumerate(term_score_index)
@@ -302,7 +357,7 @@ def replace_terms(
     if len(candidate_sents) < num_output_sents:
         num_output_sents = len(candidate_sents)
 
-    max_attempts = 10
+    max_attempts = 50
     counter = 0
     new_sentences = set()
     while len(new_sentences) < num_output_sents:
@@ -345,11 +400,13 @@ def replace_terms(
         re.sub(r'([A-Za-z0-9])(\s+)([^A-Za-z0-9])', r'\1\3', x)
         for x in new_sentences[:num_output_sents]
     ]
+
     if len(new_sentences) < num_output_sents:
         logger.debug(
-            '{}:replace_terms: unable to generate num_output_sents {}'.format(
+            '{}:replace_terms: unable to generate num_output_sents - {} of ({})'.format(
                 __file__.split('/')[-1],
-                len(new_sentences)
+                len(new_sentences),
+                num_output_sents
             )
         )
     return new_sentences
@@ -358,3 +415,4 @@ def replace_terms(
 if __name__ == '__main__':
     sent  = 'how many g3p molecules leave the cycle?'
     print(replace_terms(sent, num_output_sents=10, num_replacements=2))
+    print(replace_terms(sent, rep_type='misspelling', num_output_sents=10, num_replacements=2))
