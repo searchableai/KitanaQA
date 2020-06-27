@@ -217,18 +217,18 @@ def replace_terms(
         for i,x in enumerate(importance_scores)
     ]
 
-    # Renormalize
-    importance_scores = [
-        x/sum(importance_scores)
-        for x in importance_scores
-    ]
-
     # Invert scores if sampling least important terms
     if sampling_strategy == 'bottomK':
         importance_scores = [
             1/x if x>0 else 0
             for x in importance_scores
         ]
+
+    # Renormalize
+    importance_scores = [
+        x/sum(importance_scores)
+        for x in importance_scores
+    ]
 
     # Candidate terms for synonym replacement
     rep_term_indices = [
@@ -281,17 +281,18 @@ def replace_terms(
             for i,x in enumerate(importance_scores)
         ]
 
-        # Renormalize
-        importance_scores = [
-            x/sum(importance_scores)
-            for x in importance_scores
-        ]
+    # Renormalize
+    importance_scores = [
+        x/sum(importance_scores)
+        for x in importance_scores
+    ]
 
     # Create a List of Lists of all variants
     candidate_variants = [
         v+[k]
         for k,v in term_variants.items()
     ]
+
     # Check the total number of variants
     candidate_sents = list(
         itertools.product(*candidate_variants)
