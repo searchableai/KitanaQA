@@ -30,25 +30,27 @@ remove_list = firstnames+stop_words
 remove_list = [x.lower() for x in remove_list]
 
 
-def _check_sent(sent: str) -> str:
-    """Run sanity checks on input and sanitize"""
-    try:
-        sent = str(sent)
-    except Exception as e:
-        logger.error(
-            '{}:_check_sent: {} - {}'.format(
-                __file__.split('/')[-1], sent, e)
-            )
-        return ''
-    sent = re.sub(r'[^A-Za-z0-9.\' ]', '', sent).lower()
-    return sent
+class BaseGenerator:
+    """ Base class for generator objects """
+    def _check_sent(self, sent: str) -> str:
+        """Run sanity checks on input and sanitize"""
+        try:
+            sent = str(sent)
+        except Exception as e:
+            logger.error(
+                '{}:_check_sent: {} - {}'.format(
+                    __file__.split('/')[-1], sent, e)
+                )
+            return ''
+        sent = re.sub(r'[^A-Za-z0-9.\' ]', '', sent).lower()
+        return sent
 
-
-def _cosine_similarity(
-        v1: np.ndarray,
-        v2: np.ndarray) -> float:
-    """Calculate cosine similarity between two vectors"""
-    return dot(v1, v2) / (norm(v1) * norm(v2))
+    def _cosine_similarity(
+            self,
+            v1: np.ndarray,
+            v2: np.ndarray) -> float:
+        """ Calculate cosine similarity between two vectors """
+        return dot(v1, v2) / (norm(v1) * norm(v2))
 
 
 def _wordnet_syns(term: str, num_syns: int=10) -> List:
@@ -63,9 +65,10 @@ def _wordnet_syns(term: str, num_syns: int=10) -> List:
     return [synonyms[x] for x in rand_idx][0]
 
 
-class MisspReplace:
+class MisspReplace(BaseGenerator):
     """ Replace commonly misspelled terms """
     def __init__(self):
+        super().__init__()
         self._missp = None
         self._load_misspellings()
 
@@ -83,7 +86,7 @@ class MisspReplace:
         with open(data_file, 'r') as f:
             self._missp = json.load(f)
 
-    def get_misspellings(
+    def generate(
             self,
             term: str,
             num_missp: int=10) -> List:
@@ -98,9 +101,10 @@ class MisspReplace:
             return []
 
 
-class SynonymReplace:
+class SynonymReplace(BaseGenerator):
     """ Find synonyms using word vectors """
     def __init__(self):
+        super().__init__()
         self._vecs = None
         self._load_embeddings()
 
@@ -123,7 +127,7 @@ class SynonymReplace:
             vecs[line[0].lower().strip()] = np.asarray([float(x) for x in line[1:]])
         self._vecs = vecs
 
-    def get_synonyms(
+    def generate(
             self,
             term: str,
             num_syns: int=10,
@@ -143,7 +147,7 @@ class SynonymReplace:
 
         # Sort (desc) vectors by similarity score
         word_dict = {
-            x[0]: _cosine_similarity(x[1], search_vector) for x in vspace}
+            x[0]: self._cosine_similarity(x[1], search_vector) for x in vspace}
         vspace = [(x[0], word_dict[x[0]]) for x in vspace]
         vspace = sorted(vspace, key=lambda w: w[1], reverse=True)
 
