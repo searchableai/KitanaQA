@@ -16,6 +16,7 @@ from sparknlp.annotator import *
 from sparknlp.common import RegexRule
 from sparknlp.base import *
 from doggmentator.nlp_utils.firstnames import firstnames
+from doggmentator.generators import SynonymReplace, MisspReplace
 from doggmentator import get_logger
 
 # init logging
@@ -28,133 +29,6 @@ stop_words.extend(nltk_words)
 stop_words = list(set(stop_words))
 remove_list = firstnames+stop_words
 remove_list = [x.lower() for x in remove_list]
-
-
-def _check_sent(sent: str) -> str:
-    """Run sanity checks on input and sanitize"""
-    try:
-        sent = str(sent)
-    except Exception as e:
-        logger.error(
-            '{}:_check_sent: {} - {}'.format(
-                __file__.split('/')[-1], sent, e)
-            )
-        return ''
-    sent = re.sub(r'[^A-Za-z0-9.\' ]', '', sent).lower()
-    return sent
-
-
-def _cosine_similarity(
-        v1: np.ndarray,
-        v2: np.ndarray) -> float:
-    """Calculate cosine similarity between two vectors"""
-    return dot(v1, v2) / (norm(v1) * norm(v2))
-
-
-def _wordnet_syns(term: str, num_syns: int=10) -> List:
-    """Find synonyms using WordNet"""
-    synonyms = []
-    for syn in wordnet.synsets(term):
-        for lemma in syn.lemmas() :
-            lemma_name = ' '.join([x.lower() for x in lemma.name().split('_')])
-            if lemma_name not in synonyms and lemma_name != term:
-                synonyms.append(lemma_name)
-    rand_idx = np.random.choice(len(synonyms), size=num_syns)
-    return [synonyms[x] for x in rand_idx][0]
-
-
-class MisspReplace:
-    """ Replace commonly misspelled terms """
-    def __init__(self):
-        self._missp = None
-        self._load_misspellings()
-
-    def _load_misspellings(self):
-        """ 
-        Load dict of term misspellings
-        ref:    wiki, brikbeck
-        """
-        data_file = pkg_resources.resource_filename(
-            'doggmentator', 'support/missp.json')
-        logger.debug(
-            '{}: loading pkg data {}'.format(
-                __file__.split('/')[-1], data_file)
-            )
-        with open(data_file, 'r') as f:
-            self._missp = json.load(f)
-
-    def get_misspellings(
-            self,
-            term: str,
-            num_missp: int=10) -> List:
-        """ Generate misspellings for an input term """
-
-        # Num misspellings must be gte 1
-        num_missp = min(num_missp, 1)
-
-        if term in self._missp:
-            return self._missp[term][:num_missp]
-        else:
-            return []
-
-
-class WordVecSyns:
-    """ Find synonyms using word vectors """
-    def __init__(self):
-        self._vecs = None
-        self._load_embeddings()
-
-    def _load_embeddings(self):
-        """ 
-        Load constrained word vectors
-        ref:    Counter-fitting Word Vectors to Linguistic Constraints
-                https://arxiv.org/pdf/1603.00892.pdf
-        """
-        data_file = pkg_resources.resource_filename(
-            'doggmentator', 'support/glove.txt')
-        logger.debug(
-            '{}: loading pkg data {}'.format(
-                __file__.split('/')[-1], data_file)
-            )
-        vecs = {}
-        f = open(data_file, 'r')
-        for n, line in enumerate(f):
-            line = line.strip().split()
-            vecs[line[0].lower().strip()] = np.asarray([float(x) for x in line[1:]])
-        self._vecs = vecs
-
-    def get_synonyms(
-            self,
-            term: str,
-            num_syns: int=10,
-            similarity_thre: float=0.7) -> List:
-        """ Generate synonyms for an input term """
-
-        # Number of synonyms must be gte 1
-        num_syns = min(num_syns, 1)
-
-        if term in self._vecs:
-            search_vector = self._vecs[term]
-        else:
-            return []
-
-        # Filter vectors
-        vspace = [w for w in self._vecs.items() if w[0] != term]
-
-        # Sort (desc) vectors by similarity score
-        word_dict = {
-            x[0]: _cosine_similarity(x[1], search_vector) for x in vspace}
-        vspace = [(x[0], word_dict[x[0]]) for x in vspace]
-        vspace = sorted(vspace, key=lambda w: w[1], reverse=True)
-
-        # Filter vspace by threshold
-        vspace = [x for x in vspace if x[1] >= similarity_thre]
-        if not vspace:
-            return
-
-        # Choose top synonyms
-        synonyms = [x[0] for x in vspace[:num_syns]]
-        return synonyms
 
 
 def get_entities(sentence: str) -> Dict:
@@ -303,7 +177,7 @@ def replace_terms(
         }
     elif rep_type == 'synonym':
         try:
-            wordvec = WordVecSyns()
+            syn_rep = SynonymReplace()
         except Exception as e:
             logger.error(
                 '{}:replace_terms: unable to load word vectors'.format(
@@ -313,7 +187,7 @@ def replace_terms(
             return
 
         synonyms = {
-            x[0]:wordvec.get_synonyms(x[0])
+            x[0]:syn_rep.get_synonyms(x[0])
             for i,x in enumerate(term_score_index)
         }
         term_variants = {
