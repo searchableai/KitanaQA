@@ -10,7 +10,7 @@ from typing import List, Dict, Tuple
 from numpy import dot
 from numpy.linalg import norm
 from stop_words import get_stop_words
-from nltk.corpus import stopwords, wordnet
+import nltk
 from sparknlp.pretrained import PretrainedPipeline
 from sparknlp.annotator import *
 from sparknlp.common import RegexRule
@@ -18,6 +18,9 @@ from sparknlp.base import *
 from doggmentator.nlp_utils.firstnames import firstnames
 from doggmentator.generators import SynonymReplace, MisspReplace
 from doggmentator import get_logger
+
+nltk.download('stopwords')
+from nltk.corpus import stopwords, wordnet
 
 # init logging
 logger = get_logger()
