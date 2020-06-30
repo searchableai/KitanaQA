@@ -55,8 +55,15 @@ def validate_inputs(
 def get_scores(
         tokens: List[str],
         mode: str='random',
+        mode_k: int=None,
         scores: List[Tuple]=None) -> List[Tuple]:
     """ Initialize and sanitize importance scores """
+
+    # Check mode parameters
+    if mode in ['topK', 'bottomK']:
+        if not mode_k:
+            mode_k = 10
+
     if not scores:
         # Uniform initialization
         scores = [
@@ -100,6 +107,15 @@ def get_scores(
                     1/x if x>0 else 0
                     for x in scores
                 ]
+
+            # Select topK elements
+            select_args = sorted(
+                                range(
+                                    len(scores)
+                                ),
+                                key=scores.__getitem__,
+                            )[:mode_k]
+            scores = scores[select_args]
 
             # Normalize
             scores = [
@@ -190,7 +206,8 @@ class ReplaceTerms():
             importance_scores: List=None,
             num_replacements: int=1,
             num_output_sents: int=1,
-            sampling_strategy: str='random') -> List:
+            sampling_strategy: str='random',
+            sampling_k: int=None) -> List:
         """Generate list of strings by replacing specified number of terms with their synonyms"""
 
         inputs = validate_inputs(
@@ -216,7 +233,11 @@ class ReplaceTerms():
             return
 
         # Initialize sampling scores
-        importance_scores = get_scores(tokens, sampling_strategy, importance_scores)
+        importance_scores = get_scores(
+            tokens,
+            sampling_strategy,
+            sampling_k,
+            importance_scores)
 
         if not importance_scores:
             return

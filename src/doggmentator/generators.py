@@ -93,7 +93,7 @@ class MisspReplace(BaseGenerator):
         """ Generate misspellings for an input term """
 
         # Num misspellings must be gte 1
-        num_missp = min(num_missp, 1)
+        num_missp = max(num_missp, 1)
 
         if term in self._missp:
             return self._missp[term][:num_missp]
@@ -135,7 +135,7 @@ class SynonymReplace(BaseGenerator):
         """ Generate synonyms for an input term """
 
         # Number of synonyms must be gte 1
-        num_syns = min(num_syns, 1)
+        num_syns = max(num_syns, 1)
 
         if term in self._vecs:
             search_vector = self._vecs[term]
