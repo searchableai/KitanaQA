@@ -14,8 +14,10 @@ Install Instructions:
 ```sudo update-alternatives --config java```
 ```java -version```
 
+- Setup word vectors
+Unzip word vec files in /support directory
+
 - Install the package
 ```python setup.py install```
 
-- Setup word vectors
-Unzip word vec files in /support directory
+
