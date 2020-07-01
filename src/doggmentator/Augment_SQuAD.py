@@ -12,7 +12,7 @@ with open('src/doggmentator/SQuAD_v1.1_dev.pickle','rb') as f:
     score_dict = pickle.load(f)
 
 class MyTensorDataset(Dataset):
-    def __init__(self, raw_dataset, tokenizer, importance_score_dict, is_training=False, sample_ratio=2.0,
+    def __init__(self, raw_dataset, tokenizer, importance_score_dict, is_training=False, sample_ratio=0.5,
                  p_replace=0.1, p_dropword=0.1, p_misspelling=0.1):
         # A list of tuples of tensors
         self.dataset = []
@@ -40,6 +40,8 @@ class MyTensorDataset(Dataset):
         for aug_type in augmentation_types.keys():
             remaining_count[aug_type] = 0
 
+        ct = 0
+
         for aug_idx, count in aug_freqs.items():
             # Get frequency of each augmentation type for current example with replacement
             aug_type_sample = np.random.choice(list(augmentation_types.keys()), size=count, p=probs)
@@ -58,16 +60,16 @@ class MyTensorDataset(Dataset):
             sep_id = [idx for idx, token in enumerate(tokens) if token == '[SEP]']
             question = tokenizer.convert_tokens_to_string(tokens[1:sep_id[0]])
             context = tokenizer.convert_tokens_to_string(tokens[sep_id[0] + 1:sep_id[1]])
-            print(question)
-            print(context)
             importance_score = importance_score_dict[aug_idx]
-            print(importance_score)
-            print('+' * 60)
-            print(aug_type_freq)
+
+            if ct % 1000 == 0:
+                print(question)
+                print(context)
+                print(importance_score)
+                print('+' * 60)
+                print(aug_type_freq)
             
             for aug_type, aug_times in aug_type_freq.items():
-                print('+'*60)
-                print(aug_type)
                 if aug_type == 'drop':
                     aug_questions = augmentation_types[aug_type](question, N = 1, K = 1)
                 else:
@@ -105,8 +107,11 @@ class MyTensorDataset(Dataset):
                                                   cls_index,
                                                   p_mask,
                                                   ]))
+                if ct % 1000 == 0:
+                    print(aug_question)
                 remaining_count[aug_type] = aug_times - len(aug_questions)
-            raise NameError('HiThere')
+
+            ct += 1
         self.dataset = raw_dataset + aug_dataset
 
     def __getitem__(self, index):
