@@ -98,7 +98,7 @@ def get_scores(
                     final_scores.append((tokens[tokens_idx], 0))
                     tokens_idx += 1
             scores = final_scores
-            print(scores)
+            
 
         # Ensure score types, norm, sgn
         tokens = [x[0] for x in scores]
@@ -296,10 +296,11 @@ class ReplaceTerms():
         ]
 
         # Renormalize
-        importance_scores = [
-            x/sum(importance_scores)
-            for x in importance_scores
-        ]
+        if sum(importance_scores) != 0:# avoid division by 0 error
+            importance_scores = [
+                x/sum(importance_scores)
+                for x in importance_scores
+            ]
 
         # Create a List of Lists of all variants
         candidate_variants = [
