@@ -86,53 +86,53 @@ def get_scores(
         scores = list(zip(tokens, scores))
     else:   
         if len(scores) != len(tokens):
-            logger.error(    
-                '{}:get_scores: ({},{}) mismatch in entity vec and importance score dims'.format(
-                    __file__.split('/')[-1],
-                    len(tokens),
-                    len(scores)
-                )      
-            ) 
-            scores = None
-        else:
-            # Ensure score types, norm, sgn
-            tokens = [x[0] for x in scores]
-            scores = [   
-                abs(float(x[1]))
-                for x in scores
-            ]
+            score_idx, tokens_idx = 0, 0
+            final_scores = []
+            while tokens_idx < len(tokens):
+                if score_idx < len(scores) and scores[score_idx][0] == tokens[tokens_idx]:
+                    final_scores.append(scores[score_idx])
+                    score_idx += 1
+                    tokens_idx += 1
+                else:
+                # not a whole-word token, won't find a replacement for this token, assign a 0 to this token
+                    final_scores.append((tokens[tokens_idx], 0))
+                    tokens_idx += 1
+            scores = final_scores
+            
+
+        # Ensure score types, norm, sgn
+        tokens = [x[0] for x in scores]
+        scores = [abs(float(x[1])) for x in scores]
+
+        scores = [x/sum(scores) for x in scores]
+
+        # Invert scores if sampling least important terms
+        if mode == 'bottomK':
             scores = [
-                (x[0],x[1]/sum(scores))
+                1/x if x>0 else 0
                 for x in scores
             ]
 
-            # Invert scores if sampling least important terms
-            if sampling_strategy == 'bottomK':
-                scores = [
-                    1/x if x>0 else 0
-                    for x in scores
-                ]
+        # Select topK elements
+        select_args = sorted(
+                            range(
+                                len(scores)
+                            ),
+                            key=scores.__getitem__,
+                        )[:mode_k]
+        scores = [
+            x
+            if i in select_args
+            else 0.
+            for i,x in enumerate(scores)
+        ]
 
-            # Select topK elements
-            select_args = sorted(
-                                range(
-                                    len(scores)
-                                ),
-                                key=scores.__getitem__,
-                            )[:mode_k]
-            scores = [
-                x
-                if i in select_args
-                else 0.
-                for i,x in enumerate(scores)
-            ]
-
-            # Normalize
-            scores = [
-                x/sum(scores)
-                for x in scores
-            ]
-            scores = list(zip(tokens, scores))
+        # Normalize
+        scores = [
+            x/sum(scores)
+            for x in scores
+        ]
+        scores = list(zip(tokens, scores))
     return scores  # [(tok, score),...]
 
 
@@ -296,6 +296,8 @@ class ReplaceTerms():
         ]
 
         # Renormalize
+        if sum(importance_scores) == 0:
+                return []# avoid division by 0 error
         importance_scores = [
             x/sum(importance_scores)
             for x in importance_scores
