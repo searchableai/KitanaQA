@@ -8,6 +8,9 @@ from collections import Counter
 from doggmentator.drop_words import dropwords
 from doggmentator.term_replacement import *
 
+with open('src/doggmentator/SQuAD_v1.1_dev.pickle','rb') as f:
+    score_dict = pickle.load(f)
+
 class MyTensorDataset(Dataset):
     def __init__(self, raw_dataset, tokenizer, importance_score_dict, is_training=False, sample_ratio=2.0,
                  p_replace=0.1, p_dropword=0.1, p_misspelling=0.1):
@@ -61,19 +64,21 @@ class MyTensorDataset(Dataset):
             print(importance_score)
             print('+' * 60)
             print(aug_type_freq)
-            print(raw_data)
-            print('+' * 60)
+            
             for aug_type, aug_times in aug_type_freq.items():
+                print('+'*60)
+                print(aug_type)
                 if aug_type == 'drop':
                     aug_questions = augmentation_types[aug_type](question, N = 1, K = 1)
                 else:
                     aug_questions = augmentation_types[aug_type](sentence = question,
                                                              importance_scores = importance_score,
                                                              num_replacements = 1,
-                                                             num_outputs = aug_times,
+                                                             num_output_sents = aug_times,
                                                              sampling_strategy = 'topK',
                                                              sampling_k = 5)
                 for aug_question in aug_questions:
+                    print(aug_question)
                     data_dict = tokenizer.encode_plus(aug_question, context,
                                                       pad_to_max_length=True,
                                                       max_length=seq_len,
@@ -101,7 +106,7 @@ class MyTensorDataset(Dataset):
                                                   p_mask,
                                                   ]))
                 remaining_count[aug_type] = aug_times - len(aug_questions)
-                raise NameError('HiThere')
+            raise NameError('HiThere')
         self.dataset = raw_dataset + aug_dataset
 
     def __getitem__(self, index):
@@ -110,8 +115,7 @@ class MyTensorDataset(Dataset):
     def __len__(self):
         return len(self.dataset)
 
-with open('SQuAD_v1.1_dev.pickle','rb') as f:
-    score_dict = pickle.load(f)
+
 
 # Load SQuAD Dataset
 from transformers.data.processors.squad import SquadResult, SquadV1Processor, SquadV2Processor, squad_convert_examples_to_features
