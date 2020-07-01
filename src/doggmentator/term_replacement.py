@@ -63,6 +63,8 @@ def get_scores(
     """ Initialize and sanitize importance scores """
 
     # Check mode parameters
+    if scores and mode not in ['topK', 'bottomK']:
+        mode = 'topK'
     if mode in ['topK', 'bottomK']:
         if not mode_k:
             mode_k = 10
@@ -82,7 +84,7 @@ def get_scores(
             for x in scores
         ]
         scores = list(zip(tokens, scores))
-    else:                         
+    else:   
         if len(scores) != len(tokens):
             logger.error(    
                 '{}:get_scores: ({},{}) mismatch in entity vec and importance score dims'.format(
@@ -118,7 +120,12 @@ def get_scores(
                                 ),
                                 key=scores.__getitem__,
                             )[:mode_k]
-            scores = scores[select_args]
+            scores = [
+                x
+                if i in select_args
+                else 0.
+                for i,x in enumerate(scores)
+            ]
 
             # Normalize
             scores = [
