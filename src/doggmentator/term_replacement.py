@@ -296,11 +296,12 @@ class ReplaceTerms():
         ]
 
         # Renormalize
-        if sum(importance_scores) != 0:# avoid division by 0 error
-            importance_scores = [
-                x/sum(importance_scores)
-                for x in importance_scores
-            ]
+        if sum(importance_scores) == 0:
+                return []# avoid division by 0 error
+        importance_scores = [
+            x/sum(importance_scores)
+            for x in importance_scores
+        ]
 
         # Create a List of Lists of all variants
         candidate_variants = [
