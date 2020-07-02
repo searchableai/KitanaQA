@@ -296,11 +296,17 @@ class ReplaceTerms():
 
         # Renormalize
         if sum(importance_scores) == 0:
-                return []# avoid division by 0 error
+            return []  # avoid division by 0 error
+
         importance_scores = [
             x/sum(importance_scores)
             for x in importance_scores
         ]
+
+        # Resize num_replacements to avoid p-sampling errors
+        nonzero_entries = sum([x>0. for x in importance_scores])
+        if num_replacements < nonzero_entries:
+            num_replacements = nonzero_entries
 
         '''
         # DEBUG
