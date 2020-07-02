@@ -104,8 +104,6 @@ def get_scores(
         tokens = [x[0] for x in scores]
         scores = [abs(float(x[1])) for x in scores]
 
-        scores = [x/sum(scores) for x in scores]
-
         # Invert scores if sampling least important terms
         if mode == 'bottomK':
             scores = [
@@ -119,6 +117,7 @@ def get_scores(
                                 len(scores)
                             ),
                             key=scores.__getitem__,
+                            reverse=True,
                         )[:mode_k]
         scores = [
             x
@@ -374,8 +373,12 @@ class ReplaceTerms():
 
 
 if __name__ == '__main__':
-    sent  = 'how many g3p molecules leave the cycle?'
+    sent = 'what developmental network was discontinued after the shutdown of abc1 ?'
+    sc = [('what', 13.653033256530762), ('developmental', 258.72607421875), ('network', 157.8809356689453), ('was', 18.151954650878906), ('discontinued', 30.241737365722656), ('after', 70.61669921875), ('the', 4.491329193115234), ('shutdown', 32.54951477050781), ('of', 11.050531387329102), ('abc1', 54.5350456237793), ('?', 0)]
+    print('===> Orig: \n', sent, '\n')
     misspellings = ReplaceTerms(rep_type='misspelling')
-    print(misspellings.replace_terms(sent, num_output_sents=10, num_replacements=2))
     synonyms = ReplaceTerms(rep_type='synonym')
-    print(synonyms.replace_terms(sent, num_output_sents=10, num_replacements=2))
+    print('mispellings: ')
+    print(misspellings.replace_terms(sent,importance_scores=sc, num_output_sents=10, sampling_k=5))
+    print('syns: ')
+    print(synonyms.replace_terms(sent, importance_scores=sc, num_output_sents=10, sampling_k=5))
