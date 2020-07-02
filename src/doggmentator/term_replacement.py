@@ -366,7 +366,9 @@ class ReplaceTerms():
         new_sentences = list(new_sentences)
         random.shuffle(new_sentences)
         new_sentences = [
-            re.sub(r'([A-Za-z0-9])(\s+)([^A-Za-z0-9])', r'\1\3', x)
+            re.sub(r'([A-Za-z0-9])(\s+)([^A-Za-z0-9])', r'\1\3',
+                    x.replace('\' s ','\'s ')
+            )
             for x in new_sentences[:num_output_sents]
         ]
 
