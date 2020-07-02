@@ -115,7 +115,10 @@ class SynonymReplace(BaseGenerator):
                 https://arxiv.org/pdf/1603.00892.pdf
         """
         data_file = pkg_resources.resource_filename(
-            'doggmentator', 'support/glove.txt')
+            'doggmentator', 'support/counter-fitted-vectors.txt')
+            #'doggmentator', 'support/paragram.txt')
+            #'doggmentator', 'support/glove.txt')
+
         logger.debug(
             '{}: loading pkg data {}'.format(
                 __file__.split('/')[-1], data_file)
@@ -148,13 +151,12 @@ class SynonymReplace(BaseGenerator):
         # Sort (desc) vectors by similarity score
         word_dict = {
             x[0]: self._cosine_similarity(x[1], search_vector) for x in vspace}
-        vspace = [(x[0], word_dict[x[0]]) for x in vspace]
-        vspace = sorted(vspace, key=lambda w: w[1], reverse=True)
+        vspace = sorted(list(word_dict.items()), key=lambda w: w[1], reverse=True)
 
         # Filter vspace by threshold
         vspace = [x for x in vspace if x[1] >= similarity_thre]
         if not vspace:
-            return
+            return []
 
         # Choose top synonyms
         synonyms = [x[0] for x in vspace[:num_syns]]
