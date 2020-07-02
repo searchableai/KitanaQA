@@ -302,6 +302,8 @@ class ReplaceTerms():
             for x in importance_scores
         ]
 
+        '''
+        # DEBUG
         # Create a List of Lists of all variants
         candidate_variants = [
             v+[k]
@@ -316,6 +318,7 @@ class ReplaceTerms():
         # Set number of output variants to the total possible
         if len(candidate_sents) < num_output_sents:
             num_output_sents = len(candidate_sents)
+        '''
 
         max_attempts = 50
         counter = 0
