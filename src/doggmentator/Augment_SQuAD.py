@@ -8,7 +8,9 @@ from collections import Counter
 from doggmentator.drop_words import dropwords
 from doggmentator.term_replacement import *
 
-with open('src/doggmentator/SQuAD_v1.1_dev.pickle','rb') as f:
+data_file = pkg_resources.resource_filename(
+            'doggmentator', 'support/SQuAD_v1.1_dev.pickle')
+with open(data_file, 'rb') as f:
     score_dict = pickle.load(f)
 
 class MyTensorDataset(Dataset):
