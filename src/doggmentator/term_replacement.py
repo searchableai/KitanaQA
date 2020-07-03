@@ -305,7 +305,7 @@ class ReplaceTerms():
 
         # Resize num_replacements to avoid p-sampling errors
         nonzero_entries = sum([x>0. for x in importance_scores])
-        if num_replacements < nonzero_entries:
+        if num_replacements > nonzero_entries:
             num_replacements = nonzero_entries
 
         '''
@@ -390,6 +390,6 @@ if __name__ == '__main__':
     misspellings = ReplaceTerms(rep_type='misspelling')
     synonyms = ReplaceTerms(rep_type='synonym')
     print('mispellings: ')
-    print(misspellings.replace_terms(sent,importance_scores=sc, num_output_sents=10, sampling_k=5))
+    print(misspellings.replace_terms(sent,importance_scores=sc, num_replacements=1,num_output_sents=5, sampling_strategy='topK',sampling_k=5))
     print('syns: ')
     print(synonyms.replace_terms(sent, importance_scores=sc, num_output_sents=10, sampling_k=5))
