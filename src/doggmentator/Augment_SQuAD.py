@@ -7,6 +7,8 @@ import math
 from collections import Counter
 from doggmentator.drop_words import dropwords
 from doggmentator.term_replacement import *
+import logging
+logger = logging.getLogger().setLevel('INFO')
 
 data_file = pkg_resources.resource_filename(
             'doggmentator', 'support/SQuAD_v1.1_dev.pickle')
@@ -19,6 +21,7 @@ class MyTensorDataset(Dataset):
         # A list of tuples of tensors
         self.dataset = []
         aug_dataset = []
+        aug_seqs = []
         raw_dataset = [raw_dataset.__getitem__(idx) for idx in range(len(raw_dataset))]
 
         # Normalize probabilities of each augmentation
@@ -65,6 +68,7 @@ class MyTensorDataset(Dataset):
             importance_score = importance_score_dict[aug_idx]
 
             if ct % 1000 == 0:
+                print('ct: ', ct)
                 print(question)
                 print(context)
                 print(importance_score)
@@ -82,7 +86,6 @@ class MyTensorDataset(Dataset):
                                                              sampling_strategy = 'topK',
                                                              sampling_k = 5)
                 for aug_question in aug_questions:
-                    print(aug_question)
                     data_dict = tokenizer.encode_plus(aug_question, context,
                                                       pad_to_max_length=True,
                                                       max_length=seq_len,
@@ -100,20 +103,29 @@ class MyTensorDataset(Dataset):
                                                   cls_index,
                                                   p_mask,
                                                   is_impossible,
+                                                  aug_type,
                                                   ]))
                     else:
+                        aug_seqs.append({'orig': question, 'aug': aug_question, 'type':aug_type})
                         aug_dataset.append(tuple([data_dict['input_ids'][0],
                                                   data_dict['attention_mask'][0],
                                                   data_dict['token_type_ids'][0],
                                                   feature_index,
                                                   cls_index,
                                                   p_mask,
+                                                  aug_type,
                                                   ]))
                 if ct % 1000 == 0:
-                    print(aug_question)
+                    print('Generated {} examples'.format(len(aug_dataset)))
                 remaining_count[aug_type] = aug_times - len(aug_questions)
 
             ct += 1
+
+        print('Saving data')
+        with open('aug_seqs.json', 'w') as f:
+            json.dump(aug_seqs, f)
+        torch.save(aug_dataset, "aug_SQuAD_v1_dev.pt")
+
         self.dataset = raw_dataset + aug_dataset
 
     def __getitem__(self, index):
