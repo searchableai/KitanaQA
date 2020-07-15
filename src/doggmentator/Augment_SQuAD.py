@@ -18,6 +18,13 @@ data_file = pkg_resources.resource_filename(
 with open(data_file, 'rb') as f:
     score_dict = pickle.load(f)
 
+def _from_checkpoint(
+        fname: str='checkpoint.pkl') -> Dict:
+    """ Load a checkpoint file """
+    with open(fname, 'rb') as f:
+        checkpoint = pickle.load(f)
+    return checkpoint
+
 def format_squad(
         examples: Dict,
         title_map: Dict,
@@ -33,7 +40,7 @@ def format_squad(
     tle_ids = []
     graphs = []
     num_examples = len(examples)
-    unique_ids = [hashlib.md5(datetime.now().strftime('%Y%m%d%M%s').encode('utf-8')).hexdigest() for x in range(num_examples)]
+    unique_ids = [str(x) for x in range(num_examples)]
 
     dataset = {}
     for example in examples:
@@ -68,8 +75,31 @@ def format_squad(
             
 
 class MySQuADDataset(Dataset):
-    def __init__(self, raw_examples, importance_score_dict=None, is_training=False, sample_ratio=0.5,
-                 p_replace=0.1, p_dropword=0.1, p_misspelling=0.1):
+    def __init__(
+                self,
+                raw_examples: List,
+                importance_score_dict: List[tuple]=None,
+                is_training: bool=False,
+                sample_ratio: float=3.,
+                num_replacements: int=2,
+                sampling_k: int=5,
+                sampling_strategy: str='topK',
+                p_replace: float=0.1,
+                p_dropword: float=0.1,
+                p_misspelling: float=0.1,
+                save_freq: int=100,
+                from_checkpoint: bool=True):
+        """ Instantiate a MySQuADDataset instance"""
+        hparams = {
+            "num_replacements":num_replacements,
+            "sample_ratio":sample_ratio,
+            "p_replace":p_replace,
+            "p_dropword":p_dropword,
+            "p_misspelling":p_misspelling,
+            "sampling_strategy":sampling_strategy,
+            "sampling_k":sampling_k
+        }
+        print('Running MySQuADDataset with hparams {}'.format(hparams))
         # A list of tuples or tensors
         aug_dataset = []
         aug_seqs = []
@@ -100,26 +130,37 @@ class MySQuADDataset(Dataset):
         probs = [p / sum(probs) for p in probs]
         augmentation_types = {
             'drop': dropwords,
-            'synonym': ReplaceTerms(rep_type='synonym').replace_terms,
-            'misspelling': ReplaceTerms(rep_type='misspelling').replace_terms
+            'synonym': ReplaceTerms(rep_type='synonym'),
+            'misspelling': ReplaceTerms(rep_type='misspelling')
         }
         num_examples = len(examples)
         num_aug_examples = math.ceil(num_examples * sample_ratio)
+        print('Generating {} aug examples from {} orig examples'.format(num_aug_examples, num_examples))
         orig_indices = list(range(num_examples))
 
         # Randomly sample indices of data in original dataset with replacement
         aug_indices = np.random.choice(orig_indices, size=num_aug_examples)
         aug_freqs = Counter(aug_indices)
-        print(examples, num_examples, num_aug_examples, orig_indices, aug_indices, aug_indices)
+        #print(examples, num_examples, num_aug_examples, orig_indices, aug_indices, aug_indices)
+
+        ct = 0
+        if from_checkpoint:
+            checkpoint = _from_checkpoint()
+            if not checkpoint:
+                raise RuntimeError('Failed to load checkpoint file')
+            aug_freqs = checkpoint['aug_freqs']
+            aug_dataset = checkpoint['aug_dataset']
+            hparams = checkpoint['hparams']
+            ct = checkpoint['ct']
 
         # Reamining number of each agumentation types after exhausting previous example's variations
         remaining_count = {}
         for aug_type in augmentation_types.keys():
             remaining_count[aug_type] = 0
 
-        ct = 0
-
         for aug_idx, count in aug_freqs.items():
+            if len(aug_dataset) > num_aug_examples:
+                continue
             # Get frequency of each augmentation type for current example with replacement
             aug_type_sample = np.random.choice(list(augmentation_types.keys()), size=count, p=probs)
             aug_type_freq = Counter(aug_type_sample)
@@ -138,25 +179,29 @@ class MySQuADDataset(Dataset):
             else:
                 importance_score = None
 
-            if ct % 1000 == 0:
+            if ct % save_freq == 0:
                 print('ct: ', ct)
-                print(question)
-                print(context)
-                print(importance_score)
-                print('+' * 60)
-                print(aug_type_freq)
+                print('Generated {} examples'.format(len(aug_dataset)))
+                checkpoint = {
+                    'aug_freqs':aug_freqs,
+                    'aug_dataset':aug_dataset,
+                    'hparams':hparams,
+                    'ct':ct
+                }
+                with open('checkpoint.pkl', 'wb') as f:
+                    pickle.dump(checkpoint, f) 
+            sys.stdout.flush()
 
             for aug_type, aug_times in aug_type_freq.items():
                 if aug_type == 'drop':
-                    aug_questions = augmentation_types[aug_type](question, N = 1, K = 1)
+                    aug_questions = augmentation_types[aug_type](question, N = 1, K = num_replacements)
                 else:
-                    aug_questions = augmentation_types[aug_type](sentence = question,
+                    aug_questions = augmentation_types[aug_type].replace_terms(sentence = question,
                                                              importance_scores = importance_score,
-                                                             num_replacements = 1,
+                                                             num_replacements = num_replacements,
                                                              num_output_sents = aug_times,
-                                                             sampling_strategy = 'topK',
-                                                             sampling_k = 5)
-                #print(question, ' ---- ', aug_questions, '(',aug_type,')')
+                                                             sampling_strategy = sampling_strategy,
+                                                             sampling_k = sampling_k)
                 for aug_question in aug_questions:
                     if is_training:
                         aug_dataset.append({
@@ -179,18 +224,18 @@ class MySQuADDataset(Dataset):
                                                 'answers':answers,
                                         })  
 
-                if ct % 1000 == 0:
-                    print('Generated {} examples'.format(len(aug_dataset)))
                 remaining_count[aug_type] = aug_times - len(aug_questions)
 
             ct += 1
 
         formatted_aug_dataset = format_squad(aug_dataset, title_map, context_map)
         print('Saving data')
-        with open('aug_seqs.json', 'w') as f:
+        with open('train_aug_seqs.json', 'w') as f:
             json.dump(aug_seqs, f)
-        with open('aug_squad_v1.json', 'w') as f:
+        with open('train_aug_squad_v1.json', 'w') as f:
             json.dump(formatted_aug_dataset, f)
+        with open('hparams.json', 'w') as f:
+            json.dump(hparams, f)
 
 
 class MyTensorDataset(Dataset):
@@ -207,8 +252,8 @@ class MyTensorDataset(Dataset):
         probs = [p / sum(probs) for p in probs]
         augmentation_types = {
             'drop': dropwords,
-            'synonym': ReplaceTerms(rep_type='synonym').replace_terms,
-            'misspelling': ReplaceTerms(rep_type='misspelling').replace_terms
+            'synonym': ReplaceTerms(rep_type='synonym'),
+            'misspelling': ReplaceTerms(rep_type='misspelling')
         }
         num_examples = len(raw_dataset)
         num_aug_examples = math.ceil(num_examples * sample_ratio)
@@ -245,19 +290,15 @@ class MyTensorDataset(Dataset):
             context = tokenizer.convert_tokens_to_string(tokens[sep_id[0] + 1:sep_id[1]])
             importance_score = importance_score_dict[aug_idx]
 
-            if ct % 1000 == 0:
+            if ct % 100 == 0:
                 print('ct: ', ct)
-                print(question)
-                print(context)
-                print(importance_score)
-                print('+' * 60)
-                print(aug_type_freq)
+                print('Generated {} examples'.format(len(aug_dataset)))
             
             for aug_type, aug_times in aug_type_freq.items():
                 if aug_type == 'drop':
                     aug_questions = augmentation_types[aug_type](question, N = 1, K = 1)
                 else:
-                    aug_questions = augmentation_types[aug_type](sentence = question,
+                    aug_questions = augmentation_types[aug_type].replace_terms(sentence = question,
                                                              importance_scores = importance_score,
                                                              num_replacements = 1,
                                                              num_output_sents = aug_times,
@@ -314,15 +355,16 @@ class MyTensorDataset(Dataset):
 
 
 
-# Load SQuAD Dataset
-from transformers.data.processors.squad import SquadResult, SquadV1Processor, SquadV2Processor, squad_convert_examples_to_features
-'''
-import tensorflow_datasets as tfds
-tfds_examples = tfds.load("squad")
-examples = SquadV1Processor().get_examples_from_dataset(tfds_examples, evaluate=True)
-from transformers import BertTokenizer, BertModel
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-features, raw_dataset = squad_convert_examples_to_features(
+if __name__ == "__main__":
+    # Load SQuAD Dataset
+    from transformers.data.processors.squad import SquadResult, SquadV1Processor, SquadV2Processor, squad_convert_examples_to_features
+    '''
+    import tensorflow_datasets as tfds
+    tfds_examples = tfds.load("squad")
+    examples = SquadV1Processor().get_examples_from_dataset(tfds_examples, evaluate=True)
+    from transformers import BertTokenizer, BertModel
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    features, raw_dataset = squad_convert_examples_to_features(
             examples=examples,
             tokenizer=tokenizer,
             max_seq_length=512,
@@ -331,12 +373,13 @@ features, raw_dataset = squad_convert_examples_to_features(
             is_training=False,
             return_dataset="pt",
             #threads=args.threads,
-)
-'''
+    )
+    '''
 
-#dataset = MyTensorDataset(raw_dataset, tokenizer, score_dict)
-fname = '/home/ubuntu/dev/bootcamp/finetune/SQuAD/eval/support/dev-v1.1.json'
-with open(fname, 'r') as f:
-    data = json.load(f)
-#dataset = MyQADataset(data, score_dict)
-dataset = MySQuADDataset(data)
+    #dataset = MyTensorDataset(raw_dataset, tokenizer, score_dict)
+    fname = '/home/ubuntu/dev/bootcamp/finetune/SQuAD/train/support/train-v1.1.json'
+    #fname = '/home/ubuntu/dev/bootcamp/finetune/SQuAD/eval/support/dev-v1.1.json'
+    with open(fname, 'r') as f:
+        data = json.load(f)
+    #dataset = MyQADataset(data, score_dict)
+    dataset = MySQuADDataset(data)

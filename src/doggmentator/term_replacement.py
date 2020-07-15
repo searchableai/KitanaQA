@@ -78,11 +78,12 @@ def get_scores(
             for x in tokens
         ]
         
-        # Normalize
-        scores = [
-            x/sum(scores)
-            for x in scores
-        ]
+        if scores and sum(scores) != 0.:
+            # Normalize
+            scores = [
+                x/sum(scores)
+                for x in scores
+            ]
         scores = list(zip(tokens, scores))
     else:   
         if len(scores) != len(tokens):
@@ -107,7 +108,7 @@ def get_scores(
         # Invert scores if sampling least important terms
         if mode == 'bottomK':
             scores = [
-                1/x if x>0 else 0
+                1/x if x>0. else 0.
                 for x in scores
             ]
 
@@ -126,11 +127,12 @@ def get_scores(
             for i,x in enumerate(scores)
         ]
 
-        # Normalize
-        scores = [
-            x/sum(scores)
-            for x in scores
-        ]
+        if scores and sum(scores) > 0.:
+            # Normalize
+            scores = [
+                x/sum(scores)
+                for x in scores
+            ]
         scores = list(zip(tokens, scores))
     return scores  # [(tok, score),...]
 
@@ -232,14 +234,14 @@ class ReplaceTerms():
 
         # Check if there are enough candidate terms
         if num_replacements > (len(masked_vector) - sum(masked_vector)):
-            logger.error(
+            logger.warning(
                 '{}:replace_terms: unable to generate num_replacements - {} of ({})'.format(
                     __file__.split('/')[-1],
                         num_replacements,
                         len(masked_vector) - sum(masked_vector)
                     )
                 )
-            return
+            num_replacements = len(masked_vector) - sum(masked_vector)
 
         # Initialize sampling scores
         importance_scores = get_scores(
@@ -249,7 +251,7 @@ class ReplaceTerms():
             importance_scores)
 
         if not importance_scores:
-            return
+            return []
 
         # Add index and mask to importance scores
         term_score_index = [
