@@ -1,17 +1,8 @@
 import pytest
-
-import term_replacement
-from term_replacement import validate_inputs, get_scores, ReplaceTerms
-from generators import BaseGenerator, MisspReplace, SynonymReplace, _wordnet_syns
-from stop_words import get_stop_words
-import nltk
-from doggmentator.nlp_utils.firstnames import firstnames
-from generators import SynonymReplace, MisspReplace
+from doggmentator.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms
+from doggmentator.generators import BaseGenerator, MisspReplace, SynonymReplace, _wordnet_syns
 from doggmentator import get_logger
-
-nltk.download('stopwords')
-from nltk.corpus import stopwords, wordnet
-
+from doggmentator.Augment_SQuAD import
 # init logging
 logger = get_logger()
 
@@ -103,7 +94,7 @@ class TestGenerators():
         sim = base_gen._cosine_similarity(a, b)
         sim = sim.item()
         assert isinstance(sim, float)
-        assert sim == 0.8215838362577491
+        assert sim == pytest.approx(0.82, 0.02)
 
     # Need some change in the main script
     def test_wordnet_syns(self):
@@ -125,9 +116,9 @@ class TestGenerators():
 class TestDropWords():
 
     def test_dropwords(self):
-        from drop_words import dropwords
+        drop_word = DropTerms()
         original_sentence = "Andy's friend just ate an apple and a bananna?!"
-        dropped_sentences = dropwords(original_sentence, N=2, K=3)
+        dropped_sentences = drop_word.drop_terms(sentence=original_sentence, num_terms=2,num_output_sents=2)
         assert isinstance(dropped_sentences, list)
         assert len(dropped_sentences) == 2
 
