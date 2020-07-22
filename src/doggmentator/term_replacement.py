@@ -6,11 +6,12 @@ import itertools
 import re
 import json
 import numpy as np
+import nltk
+from nltk.tokenize import word_tokenize
+from stop_words import get_stop_words
 from typing import List, Dict, Tuple
 from numpy import dot
 from numpy.linalg import norm
-from stop_words import get_stop_words
-import nltk
 from sparknlp.pretrained import PretrainedPipeline
 from sparknlp.annotator import *
 from sparknlp.common import RegexRule
@@ -37,7 +38,7 @@ remove_list = [x.lower() for x in remove_list]
 def validate_inputs(
         num_replacements: int,
         num_output_sents: int,
-        sampling_strategy: str) -> List:
+        sampling_strategy: str=None) -> List:
     """ Ensures valid input parameters """ 
 
     # Ensure num inputs between 1 and 10
@@ -135,6 +136,81 @@ def get_scores(
             ]
         scores = list(zip(tokens, scores))
     return scores  # [(tok, score),...]
+
+
+class DropTerms():
+    """ Remove terms from a sequence """
+    def __init__(self):
+        """Instantiate a DropTerms object"""
+        pass
+
+    def drop_terms(
+            self,
+            sentence: str,
+            num_terms: int=1,
+            num_output_sents: int=1) -> List:
+        """Generate list of strings by randomly dropping terms"""
+
+        inputs = validate_inputs(
+            num_terms,
+            num_output_sents)
+        num_terms = inputs.pop(0)
+        num_output_sents = inputs.pop(0)
+
+        # Whitespace tokenizer
+        word_tokens = word_tokenize(sentence)
+
+        # Create list of candidate drop words
+        drop_word_indices = []
+        for idx, word in enumerate(word_tokens):
+            if word in remove_list:
+                drop_word_indices.append(idx)
+
+        # Ensure num_terms does not exceed possible terms
+        if num_terms > len(drop_word_indices):
+            num_terms = len(drop_word_indices)
+
+        new_sentences = []
+        if len(drop_word_indices) == 0:
+            return new_sentences
+
+        # Randomly choose num_terms indices from all drop_word_indices
+        comb = []
+        if num_terms == -1:
+            # Generate all possible combinations for debugging
+            for r in range(1, len(drop_word_indices) + 1):
+                comb += list(itertools.combinations(drop_word_indices, r))
+        else:
+            # Generate all combinations of num_terms stopwords
+            comb = list(itertools.combinations(drop_word_indices, num_terms))
+
+        # Randomly sample drop term combinations
+        n_chosen_indices = [comb[idx] for idx in np.random.choice(len(comb), size=min(num_output_sents, len(comb)), replace=False)]
+        for chosen_indices in n_chosen_indices:
+            new_words = [word_tokens[idx] for idx in range(len(word_tokens)) if idx not in chosen_indices]
+            new_sentence = ' '.join(new_words)
+            # Check if generated sent is empty string
+            if new_sentence:
+                new_sentences.append(new_sentence)
+
+        # Shuffle permutations, sanitize and slice
+        new_sentences = list(set(new_sentences))
+        new_sentences = [
+            re.sub(r'([A-Za-z0-9])(\s+)([^A-Za-z0-9])', r'\1\3',
+                    x.replace('\' s ','\'s ')
+            )
+            for x in new_sentences
+        ]
+
+        if len(new_sentences) < num_output_sents:
+            logger.debug(
+                '{}:drop_terms: unable to generate num_output_sents - {} of ({})'.format(
+                    __file__.split('/')[-1],
+                    len(new_sentences),
+                    num_output_sents
+                )
+            )
+        return new_sentences
 
 
 class ReplaceTerms():
@@ -389,9 +465,13 @@ if __name__ == '__main__':
     sent = 'what developmental network was discontinued after the shutdown of abc1 ?'
     sc = [('what', 13.653033256530762), ('developmental', 258.72607421875), ('network', 157.8809356689453), ('was', 18.151954650878906), ('discontinued', 30.241737365722656), ('after', 70.61669921875), ('the', 4.491329193115234), ('shutdown', 32.54951477050781), ('of', 11.050531387329102), ('abc1', 54.5350456237793), ('?', 0)]
     print('===> Orig: \n', sent, '\n')
+    dw = DropTerms()
+    print(dw.drop_terms(sent, 2, 4))
+    '''
     misspellings = ReplaceTerms(rep_type='misspelling')
     synonyms = ReplaceTerms(rep_type='synonym')
     print('mispellings: ')
     print(misspellings.replace_terms(sent,importance_scores=sc, num_replacements=1,num_output_sents=5, sampling_strategy='topK',sampling_k=5))
     print('syns: ')
     print(synonyms.replace_terms(sent, importance_scores=sc, num_output_sents=10, sampling_k=5))
+    '''
