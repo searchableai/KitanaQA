@@ -2,7 +2,6 @@ import pytest
 from doggmentator.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms
 from doggmentator.generators import BaseGenerator, MisspReplace, SynonymReplace, _wordnet_syns
 from doggmentator import get_logger
-from doggmentator.Augment_SQuAD import
 # init logging
 logger = get_logger()
 
@@ -121,6 +120,7 @@ class TestDropWords():
         dropped_sentences = drop_word.drop_terms(sentence=original_sentence, num_terms=2,num_output_sents=2)
         assert isinstance(dropped_sentences, list)
         assert len(dropped_sentences) == 2
+
 
 if __name__ == '__main__':
     pass
