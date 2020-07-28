@@ -121,6 +121,5 @@ class TestDropWords():
         assert isinstance(dropped_sentences, list)
         assert len(dropped_sentences) == 2
 
-
 if __name__ == '__main__':
     pass
