@@ -16,4 +16,4 @@ jobs:
           command: |
           pip install pytest
           command: | pip install nltk
-          command: pytest tests/test_backend.py -v
+          command: | pytest tests/test_backend.py -v
