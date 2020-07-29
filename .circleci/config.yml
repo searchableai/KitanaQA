@@ -8,39 +8,15 @@ jobs:
       - checkout
       - run:
           name: create a new virtual env for installing dependecies
-          command: | python3 -m venv venv . venv/bin/activate
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
       - run:
           name: install dependencies to run unittests
-          command: | pip install pytest
-          command: | pip install nltk
-          command: | pytest tests/test_backend.py -v
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-'''
-# Use a package of configuration called an orb.
-orbs:
-  # Declare a dependency on the welcome-orb
-  welcome: circleci/welcome-orb@0.4.1
-# Orchestrate or schedule a set of jobs
-workflows:
-  # Name the workflow "welcome"
-  welcome:
-    # Run the welcome/run job in its own container
-    jobs:
-      - welcome/runb
-'''
+          command: |
+            pip install pytest
+            pip install nltk
+      - run:
+          name: testing
+          command: |
+            pytest tests/test_backend.py -v
