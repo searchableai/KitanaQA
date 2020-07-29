@@ -3,13 +3,20 @@ version: 2.1
 jobs:
   build:
     machine:
-      image: ubuntu-1604:202007-01
+      image: circleci/classic:201808-01
+
+    working_directory: ~/doggmentator
     steps:
       - checkout
       - run:
+          name: "Switch to Python v3.7"
+          command: |
+            pyenv versions
+            pyenv global 3.7.0
+      - run:
           name: create a new virtual env for installing dependecies
           command: |
-            python3 -m venv venv
+            python -m venv venv
             . venv/bin/activate
       - run:
           name: install dependencies to run unittests
@@ -19,4 +26,4 @@ jobs:
       - run:
           name: testing
           command: |
-            pytest test_backend.py -v
+            pytest /tests/test_backend.py -v
