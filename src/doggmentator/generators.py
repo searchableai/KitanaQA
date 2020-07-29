@@ -20,6 +20,10 @@ from doggmentator import get_logger
 
 # init logging
 logger = get_logger()
+try:
+    nltk.download('stopwords')
+except:
+    print('stopwords already present')
 
 # stopwords and common names lists
 stop_words = list(get_stop_words('en'))  # have around 900 stopwords
