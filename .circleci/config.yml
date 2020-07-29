@@ -23,6 +23,7 @@ jobs:
           command: |
 
             pip install --upgrade pip
+            ls
             unzip Doggmentator/src/doggmentator/support/counter-fitted-vectors.txt.zip
             pip install pytest
             pip install nltk
