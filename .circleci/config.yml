@@ -18,13 +18,35 @@ jobs:
           command: |
             python -m venv venv
             . venv/bin/activate
+
+
+      - run:
+          name: unzip vectors file
+          command: |
+            import os, zipfile
+
+            dir_name = 'src/doggmentator/support'
+            extension = ".zip"
+
+            os.chdir(dir_name) # change directory from working dir to dir with files
+
+            for item in os.listdir(dir_name): # loop through items in dir
+                if item.endswith(extension): # check for ".zip" extension
+                      if item == 'counter-fitted-vectors.txt.zip':
+                          file_name = os.path.abspath(item) # get full path of files
+                          zip_ref = zipfile.ZipFile(file_name) # create zipfile object
+                          zip_ref.extractall(dir_name) # extract file to dir
+                          zip_ref.close() # close file
+            cd src/doggmentator/support && ls
+
+
       - run:
           name: install dependencies to run unittests
           command: |
 
             pip install --upgrade pip
             ls
-            unzip src/doggmentator/support/counter-fitted-vectors.txt.zip
+
             cd src/doggmentator/support && ls
             pip install pytest
             pip install nltk
