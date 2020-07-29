@@ -22,6 +22,11 @@ from doggmentator import get_logger
 # init logging
 logger = get_logger()
 
+try:
+    nltk.download()
+except ImportError:
+    print('NLTK Download Error')
+
 # stopwords and common names lists
 stop_words = list(get_stop_words('en'))  # have around 900 stopwords
 nltk_words = list(stopwords.words('english'))  # have around 150 stopwords
