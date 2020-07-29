@@ -26,4 +26,4 @@ jobs:
       - run:
           name: testing
           command: |
-            pytest . tests/test_backend.py -v
+            pytest src/doggmentator/tests/test_backend.py -v
