@@ -26,10 +26,6 @@ jobs:
             pip install spark-nlp==2.5.4 pyspark==2.4.4
             pip install numpy
             pip install stop_words
-      - run:
-          command: |
-            import nltk
-            nltk.download('stopwords')
 
       - run:
           name: testing
