@@ -4,6 +4,7 @@ jobs:
   build:
     machine:
       image: ubuntu-1604:202007-01
+      working_directory: ~/doggmentator
     steps:
       - checkout
       - run:
@@ -19,4 +20,4 @@ jobs:
       - run:
           name: testing
           command: |
-            pytest doggmentator/tests/test_backend.py -v
+            pytest test_backend.py -v
