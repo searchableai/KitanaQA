@@ -5,7 +5,7 @@ jobs:
     machine:
       image: circleci/classic:201808-01
 
-    working_directory: ~/doggmentator
+    working_directory: ~/doggmentator/tests
     steps:
       - checkout
       - run:
@@ -31,4 +31,4 @@ jobs:
       - run:
           name: testing
           command: |
-            pytest src/doggmentator/tests/test_backend.py -v
+            python3 -m pytest
