@@ -21,6 +21,7 @@ jobs:
       - run:
           name: install dependencies to run unittests
           command: |
+            pip install --upgrade pip
             pip install pytest
             pip install nltk
             pip install spark-nlp==2.5.4 pyspark==2.4.4

@@ -10,6 +10,7 @@ from typing import List, Dict, Tuple
 from numpy import dot
 from numpy.linalg import norm
 from stop_words import get_stop_words
+import nltk
 from nltk.corpus import stopwords, wordnet
 from sparknlp.pretrained import PretrainedPipeline
 from sparknlp.annotator import *
@@ -20,10 +21,6 @@ from doggmentator import get_logger
 
 # init logging
 logger = get_logger()
-try:
-    nltk.download('stopwords')
-except:
-    print('stopwords already present')
 
 # stopwords and common names lists
 stop_words = list(get_stop_words('en'))  # have around 900 stopwords
