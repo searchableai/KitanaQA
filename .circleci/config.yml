@@ -5,7 +5,7 @@ jobs:
     machine:
       image: circleci/classic:201808-01
 
-    working_directory: ~/doggmentator/tests
+    working_directory: ~/doggmentator
     steps:
       - checkout
       - run:
@@ -21,14 +21,16 @@ jobs:
       - run:
           name: install dependencies to run unittests
           command: |
+
             pip install --upgrade pip
+            unzip support/counter-fitted-vectors.txt.zip
             pip install pytest
             pip install nltk
             pip install spark-nlp==2.5.4 pyspark==2.4.4
             pip install numpy
             pip install stop_words
             python -m nltk.downloader stopwords
-            unzip .support/counter-fitted-vectors.txt.zip
+
 
       - run:
           name: testing
