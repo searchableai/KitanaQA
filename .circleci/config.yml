@@ -29,6 +29,10 @@ jobs:
             pip install stop_words
             python -m nltk.downloader all
 
+            import zipfile
+            with zipfile.ZipFile('./support/counter-fitted-vectors.txt.zip', 'r') as zip_ref:
+                zip_ref.extractall()
+
       - run:
           name: testing
           command: |
