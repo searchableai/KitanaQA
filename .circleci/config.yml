@@ -24,6 +24,7 @@ jobs:
             pip install pytest
             pip install nltk
             pip install spark-nlp==2.5.4 pyspark==2.4.4
+            pip install numpy
       - run:
           name: testing
           command: |
