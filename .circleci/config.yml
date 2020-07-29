@@ -31,6 +31,8 @@ jobs:
             pip install numpy
             pip install stop_words
             python -m nltk.downloader stopwords
+            python -m nltk.downloader punkt
+            python -m nltk.downloader wordnet
 
 
       - run:
