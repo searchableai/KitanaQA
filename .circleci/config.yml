@@ -8,9 +8,7 @@ jobs:
       - checkout
       - run:
           name: create a new virtual env for installing dependecies
-          command:|
-              python3 -m venv venv
-              . venv/bin/activate
+          command: | python3 -m venv venv . venv/bin/activate
 
           name: install dependencies to run unittests
           command: |
