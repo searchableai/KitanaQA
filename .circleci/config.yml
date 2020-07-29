@@ -46,16 +46,16 @@ jobs:
 
             pip install --upgrade pip
             ls
-
+            python -m nltk.downloader stopwords
+            python -m nltk.downloader punkt
+            python -m nltk.downloader wordnet
             cd src/doggmentator/support && ls
             pip install pytest
             pip install nltk
             pip install spark-nlp==2.5.4 pyspark==2.4.4
             pip install numpy
             pip install stop_words
-            python -m nltk.downloader stopwords
-            python -m nltk.downloader punkt
-            python -m nltk.downloader wordnet
+
 
 
       - run:
