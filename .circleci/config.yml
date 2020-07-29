@@ -7,5 +7,13 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Testing
+          name: create a new virtual env for installing dependecies
+          command:|
+              python3 -m venv venv
+              . venv/bin/activate
+
+          name: install dependencies to run unittests
+          command: |
+          pip install pytest
+          command: | pip install nltk
           command: pytest tests/test_backend.py -v
