@@ -27,11 +27,8 @@ jobs:
             pip install spark-nlp==2.5.4 pyspark==2.4.4
             pip install numpy
             pip install stop_words
-            python -m nltk.downloader all
-
-            import zipfile
-            with zipfile.ZipFile('./support/counter-fitted-vectors.txt.zip', 'r') as zip_ref:
-                zip_ref.extractall()
+            python -m nltk.downloader stopwords
+            unzip .support/counter-fitted-vectors.txt.zip
 
       - run:
           name: testing
