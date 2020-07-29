@@ -23,7 +23,7 @@ jobs:
           command: |
 
             pip install --upgrade pip
-            unzip support/counter-fitted-vectors.txt.zip
+            unzip Doggmentator/src/doggmentator/support/counter-fitted-vectors.txt.zip
             pip install pytest
             pip install nltk
             pip install spark-nlp==2.5.4 pyspark==2.4.4
