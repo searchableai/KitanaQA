@@ -161,6 +161,3 @@ class SynonymReplace(BaseGenerator):
         # Choose top synonyms
         synonyms = [x[0] for x in vspace[:num_syns]]
         return synonyms
-
-if __name__ == "__main__":
-    pass
