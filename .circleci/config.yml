@@ -3,17 +3,43 @@ version: 2.1
 jobs:
   build:
     machine:
-      image: ubuntu-1604:202007-01
+      image: circleci/classic:201808-01
+
+    working_directory: ~/doggmentator
     steps:
       - checkout
       - run:
+          name: "Switch to Python v3.7"
+          command: |
+            pyenv versions
+            pyenv global 3.7.0
+      - run:
           name: create a new virtual env for installing dependecies
-          command:|
-              python3 -m venv venv
-              . venv/bin/activate
+          command: |
+            python -m venv venv
+            . venv/bin/activate
 
+
+      - run:
+          name: unzip vectors file
+          command: |
+            unzip src/doggmentator/support/counter-fitted-vectors.txt.zip -d src/doggmentator/support
+            cd src/doggmentator/support && ls
+
+      - run:
           name: install dependencies to run unittests
           command: |
-          pip install pytest
-          command: | pip install nltk
-          command: | pytest tests/test_backend.py -v
+            pip install --upgrade pip
+            pip install nltk
+            python -m nltk.downloader stopwords
+            python -m nltk.downloader punkt
+            python -m nltk.downloader wordnet
+            pip install pytest
+            pip install spark-nlp==2.5.4 pyspark==2.4.4
+            pip install numpy
+            pip install stop_words
+
+      - run:
+          name: testing
+          command: |
+            python3 -m pytest

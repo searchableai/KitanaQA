@@ -10,6 +10,7 @@ from typing import List, Dict, Tuple
 from numpy import dot
 from numpy.linalg import norm
 from stop_words import get_stop_words
+import nltk
 from nltk.corpus import stopwords, wordnet
 from sparknlp.pretrained import PretrainedPipeline
 from sparknlp.annotator import *
@@ -161,6 +162,3 @@ class SynonymReplace(BaseGenerator):
         # Choose top synonyms
         synonyms = [x[0] for x in vspace[:num_syns]]
         return synonyms
-
-if __name__ == "__main__":
-    pass
