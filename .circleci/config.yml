@@ -42,4 +42,4 @@ jobs:
       - run:
           name: testing
           command: |
-            pytest --cov-report xml:cov.xml term-missing --cov=doggmentator tests/
+            pytest --cov-report html:cov_html
