@@ -1,6 +1,6 @@
 Doggmentator
 
-[![CircleCI](https://circleci.com/gh/searchableai/Doggmentator.svg?style=svg&circle-token=de6470b621d1b07e54466dd087b85b80bcedf36c)](https://github.com/searchableai/Doggmentator)
+[![CircleCI](https://circleci.com/gh/searchableai/Doggmentator.svg?style=shield&circle-token=de6470b621d1b07e54466dd087b85b80bcedf36c)](https://github.com/searchableai/Doggmentator)
 
 
 - Synonym Replacement (SR) https://arxiv.org/pdf/1603.00892.pdf
