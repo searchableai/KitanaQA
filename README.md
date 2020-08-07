@@ -13,7 +13,7 @@
 
 [![CircleCI](https://circleci.com/gh/searchableai/Doggmentator.svg?style=shield&circle-token=de6470b621d1b07e54466dd087b85b80bcedf36c)](https://github.com/searchableai/Doggmentator)
 
-Make a gif of a command line working example and add it in here
+[*** Make a gif of a command line working example and add it in here ***]
 
 ## About
 
@@ -37,7 +37,7 @@ We try incorportating the following methods to augment original data following t
 ### *Why Doggmentator?*
 There are lots of reasons which motivated us to work on this project:
 1. **Understand NLP models better** by using adversarial training and data augmentation understand the effects of it on model generalizability and robustness
-2. **Create a framework to automate and protype different NLP models faster for research and production **
+2. **Create a general framework** to automate and prototype different NLP models faster for research and production
 3. **Augment your dataset** to increase model generalization and robustness downstream
 
 ## Setup
@@ -57,13 +57,11 @@ Unzip word vec files in /support directory
 ## Usage
 - [** Add usage instructions **]
 
-
 ### Examples
-
 
 ### Augmenting Text
 
-The 'embedding' augmentation recipe uses counterfitted embedding nearest-neighbors to augment data.
+The 'embedding' augmentation recipe uses counter-fitted embedding nearest-neighbors to augment data.
 
 ### Training Models
 
@@ -72,7 +70,8 @@ The 'embedding' augmentation recipe uses counterfitted embedding nearest-neighbo
 #### Training Examples
 [*** Add in training examples which shows the capabilities and the limitaions of our model ****]
 
-
+## Design
+[*** Talk about our basic system design with a block diagram, makes it intuitive to understand the concept ***]
 
 ## Contributing to Doggmentator
 
