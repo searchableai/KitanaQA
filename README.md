@@ -19,9 +19,6 @@
 
 Doggmentator is a Python framework for adversarial training and data augmentation for pre-trained NLP language model training.
 
-> If you're looking for information about Doggmentators menagerie of pre-trained models, please find it here.
-[** Add link and description to model details **]
-
 ## Augmenting Input Data
 We try incorportating the following methods to augment original data following the research - 
 [https://arxiv.org/pdf/1603.00892.pdf]
@@ -32,15 +29,11 @@ We try incorportating the following methods to augment original data following t
 - Random Misspelling (RM)
 - Query Reformulation (QR)
 
-## Github/Stack overflow/Slack Channel
-
 ### *Why Doggmentator?*
 There are lots of reasons which motivated us to work on this project:
 1. **Understand NLP models better** by using adversarial training and data augmentation understand the effects of it on model generalizability and robustness
 2. **Create a general framework** to automate and prototype different NLP models faster for research and production
 3. **Augment your dataset** to increase model generalization and robustness downstream
-
-## Setup
 
 ### Installation
 - Ensure Java v8 is set by default for pyspark compatibility:
@@ -55,23 +48,19 @@ Unzip word vec files in /support directory
 ```python setup.py install```
 
 ## Usage
-- [** Add usage instructions **]
+- To run the file
+python run_squad_hf_adv_aug_full.py
 
-### Examples
+Note:
+1.) Change the model configuration using the argument parameter(args)
+2.) Please have checkpoint-squad.json and train-v1.1.json to run from a checkpoint
+3.) Make changes to the cache directory path in args
 
-### Augmenting Text
-
-The 'embedding' augmentation recipe uses counter-fitted embedding nearest-neighbors to augment data.
-
-### Training Models
-
-[*** Planning to add a sepearte readme going into a description of all the models we tried and their performance ****]
-
-#### Training Examples
-[*** Add in training examples which shows the capabilities and the limitaions of our model ****]
-
-## Design
-[*** Talk about our basic system design with a block diagram, makes it intuitive to understand the concept ***]
+## Models Used
+We make use of the following models and their respective tokenizers and configurations provided by HuggingFace Inc.
+- ALBERT
+- BERT
+- DistilBERT
 
 ## Contributing to Doggmentator
 
