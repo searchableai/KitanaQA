@@ -75,6 +75,5 @@ The 'embedding' augmentation recipe uses counter-fitted embedding nearest-neighb
 
 ## Contributing to Doggmentator
 
-We welcome suggestions and contributions! Submit an issue or pull request and we will do our best to respond in a timely manner. TextAttack is currently in an "alpha" stage in which we are working to improve its capabilities and design.
-
+We welcome suggestions and contributions! Submit an issue or pull request and we will do our best to respond in a timely manner.
 See [CONTRIBUTING.md](https://github.com/searchableai/Doggmentator/blob/master/CONTRIBUTING.md) for detailed information on contributing.
