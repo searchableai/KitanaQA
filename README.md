@@ -13,8 +13,6 @@
 
 [![CircleCI](https://circleci.com/gh/searchableai/Doggmentator.svg?style=shield&circle-token=de6470b621d1b07e54466dd087b85b80bcedf36c)](https://github.com/searchableai/Doggmentator)
 
-[*** Make a gif of a command line working example and add it in here ***]
-
 ## About
 
 Doggmentator is a Python framework for adversarial training and data augmentation for pre-trained NLP language model training.
@@ -49,7 +47,7 @@ Unzip word vec files in /support directory
 
 ## Usage
 - To run the file
-python run_squad_hf_adv_aug_full.py
+```python run_squad_hf_adv_aug_full.py```
 
 Note:
 1.) Change the model configuration using the argument parameter(args)
