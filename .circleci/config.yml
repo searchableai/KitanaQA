@@ -3,7 +3,6 @@ version: 2.1
 jobs:
   build:
     machine:
-      image: circleci/classic:201808-01
 
     working_directory: ~/doggmentator
     steps:
@@ -38,9 +37,8 @@ jobs:
             pip install spark-nlp==2.5.4 pyspark==2.4.4
             pip install numpy
             pip install stop_words
-            pip install pytest-cov
 
       - run:
           name: testing
           command: |
-            pytest --cov-report html:cov_html
+            python3 -m pytest
