@@ -23,7 +23,6 @@ jobs:
           name: unzip vectors file
           command: |
             unzip src/doggmentator/support/counter-fitted-vectors.txt.zip -d src/doggmentator/support
-            cd src/doggmentator/support && ls
 
       - run:
           name: install dependencies to run unittests
