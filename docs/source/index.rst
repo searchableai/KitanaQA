@@ -1,46 +1,68 @@
-:github_url: https://github.com/searchableai/Doggmentator
+Doggmentator
+========================================
 
-Doggmentator Documentation
-=======================================================================================
-
+Description
+^^^^^^^^^^^
 Doggmentator is a Python framework for adversarial training and data augmentation for pre-trained NLP language model training.
 
+Augmenting Input Data
+^^^^^^^^^^^^^^^^^^^^^
+| We try incorportating the following methods to augment original data following the research - [https://arxiv.org/pdf/1603.00892.pdf]
+- Synonym Replacement (SR)
+- Random Insertion (RI)
+- Random Swap (RS)
+- Random Deletion (RD)
+- Random Misspelling (RM)
+- Query Reformulation (QR)
+
+Setup
+=====
+Installation
+^^^^^^^^^^^^
+- Ensure Java v8 is set by default for pyspark compatibility:
+| ``sudo apt install openjdk-8-jdk``
+| ``sudo update-alternatives --config java``
+| ``java -version``
+
+| - Setup word vectors
+| Unzip word vec files in /support directory
+
+| - Install the package
+| ``python setup.py install``
+
+Usage
+^^^^^
+- [** Add usage instructions **]
+
+Examples
+^^^^^^^^
+
+Augmenting Text
+^^^^^^^^^^^^^^^
+The 'embedding' augmentation recipe uses counter-fitted embedding nearest-neighbors to augment data.
+
+Training Models
+^^^^^^^^^^^^^^^
+[** ADD **]
+
+Models Used
+^^^^^^^^^^^
+|[*** Planning to add a sepearte readme going into a description of all the models we tried and their performance ****]
+
+
+Training Examples
+^^^^^^^^^^^^^^^^^
+| [*** Add in training examples which shows the capabilities and the limitaions of our model ****]
+
+Design
+^^^^^^
+| [*** Talk about our basic system design with a block diagram, makes it intuitive to understand the concept ***]
+
+
+Contributing to Doggmentator
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+| We welcome suggestions and contributions! Submit an issue or pull request and we will do our best to respond in a timely manner.
 
 .. toctree::
-   :glob:
-   :maxdepth: 1
-   :caption: Quickstart
-
-   quickstart
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Overview
-
-   overview
-
-.. toctree::
-   :maxdepth: 1
-   :caption: How to Configure
-
-   configure
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Walkthrough
-
-   walkthrough
-
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Python API
-
-    trainer
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Contributing
-
-   contributing
+   :maxdepth: 10
+   :caption: Main:

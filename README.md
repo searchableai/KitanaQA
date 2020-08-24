@@ -14,18 +14,18 @@
 [![CircleCI](https://circleci.com/gh/searchableai/Doggmentator.svg?style=shield&circle-token=de6470b621d1b07e54466dd087b85b80bcedf36c)](https://github.com/searchableai/Doggmentator)
 
 ## About
+
 Doggmentator is a Python framework for adversarial training and data augmentation for pre-trained NLP language model training.
 
 ## Augmenting Input Data
 We try incorportating the following methods to augment original data following the research - 
 [https://arxiv.org/pdf/1603.00892.pdf]
-- Synonym Replacement (SR) - Replace with synonyms obtained from Wordnet using a variable similarity metric
-- Random Insertion (RI) - Insert random tokens/sub-tokens within a token to mimic human typos, sampled to retain the natural distribution of mis-spellings
-- Random Swap (RS) - Swap sub tokens randomly, another way to introduce natural and frequently occuring typing errors
-- Random Deletion (RD) - Delete token/sub-tokens randomly to represent missed out tokens while typing
-- Random Misspelling (RM) - Introduce mis-spellings randomly sampled from a long list of common mis-spellings for a given token
-- Query Reformulation (QR) - Train the model with different possible versions of the query, to increase the generalizability and robustness of the model
-
+- Synonym Replacement (SR) 
+- Random Insertion (RI)
+- Random Swap (RS)
+- Random Deletion (RD)
+- Random Misspelling (RM)
+- Query Reformulation (QR)
 
 ### *Why Doggmentator?*
 There are lots of reasons which motivated us to work on this project:
