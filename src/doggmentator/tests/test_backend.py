@@ -5,8 +5,8 @@ import pytest
 #from doggmentator.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms
 #from doggmentator.generators import BaseGenerator, MisspReplace, SynonymReplace, _wordnet_syns
 
-from ..term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms
-from ..generators import BaseGenerator, MisspReplace, SynonymReplace, _wordnet_syns
+from doggmentator.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms
+from doggmentator.generators import BaseGenerator, MisspReplace, SynonymReplace, _wordnet_syns
 from doggmentator import get_logger
 # init logging
 logger = get_logger()
