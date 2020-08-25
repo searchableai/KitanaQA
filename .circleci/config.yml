@@ -42,3 +42,8 @@ jobs:
           name: testing
           command: |
             python3 -m pytest
+
+workflows:
+  version: 2
+  build:
+    - build
