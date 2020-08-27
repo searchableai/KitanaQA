@@ -20,12 +20,25 @@ from transformers.data.metrics.squad_metrics import (
 
 from transformers.data.processors.squad import SquadResult
 
-from doggmentator.trainer.utils import tensor_to_list, project
-
 logger = logging.getLogger(__name__)
 
 if is_apex_available():
     from apex import amp
+
+
+def tensor_to_list(tensor):
+    """ Convert a Tensor to List """
+    return tensor.detach().cpu().tolist()
+
+
+def project(X, eps, order = 'inf'):
+    if order == 2:
+        dims = list(range(1, X.dim()))
+        norms = torch.sqrt(torch.sum(X * X, dim=dims, keepdim=True))
+        return torch.min(torch.ones(norms.shape), eps / norms) * X
+    else:
+        return torch.clamp(X, min = -eps, max = eps)
+
 
 class Trainer(HFTrainer):
     def __init__(self, model_args=None, **kwargs):
@@ -161,15 +174,15 @@ class Trainer(HFTrainer):
                 else:
                     adv_loss.backward()
 
-            # Calculate g_adv and update delta every actual epoch
-            # TODO: confirm this update should occur after K iter
-            if (self._step_idx + 1) % self.args.gradient_accumulation_steps == 0:
-                # print(delta)
-                # print(delta.grad)
-                g_adv = self._delta.grad.data
-                self._delta.data = project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
-                self._delta.grad.zero_()
-                del g_adv
+                # Calculate g_adv and update delta every actual epoch
+                # TODO: confirm this update should occur only once per mini-batch
+                if (self._step_idx + 1) % self.args.gradient_accumulation_steps == 0:
+                    # print(delta)
+                    # print(delta.grad)
+                    g_adv = self._delta.grad.data
+                    self._delta.data = project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
+                    self._delta.grad.zero_()
+                    del g_adv
 
             # Set model to train mode and enable accumulation of gradients
             for param in model.parameters():
