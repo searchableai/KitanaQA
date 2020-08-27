@@ -2,6 +2,7 @@ import random
 import torch
 import os
 import logging
+import requests
 import numpy as np
 from typing import Tuple
 from torch.utils.data import Dataset
@@ -11,8 +12,37 @@ from transformers import squad_convert_examples_to_features
 logger = logging.getLogger(__name__)
 
 
+slack_url = os.environ['SLACK_WEBHOOK_URL']
+def post_to_slack(obj, old_state, new_state):
+    if new_state.is_finished():
+        msg = "{0} finished in state {1} --- results {2}".format(obj, new_state, new_state.result)
+
+        # replace URL with your Slack webhook URL
+        requests.post(slack_url, json={"text": msg})
+
+    return new_state
+
+
+def is_apex_available():
+    try:
+        from apex import amp  # noqa: F401
+        _has_apex = True
+    except ImportError:
+        _has_apex = False
+    return _has_apex
+
+
 def tensor_to_list(tensor):
     return tensor.detach().cpu().tolist()
+
+
+def project(X, eps, ord = 'inf'):
+    if ord == 2:
+        dims = list(range(1, X.dim()))
+        norms = torch.sqrt(torch.sum(X * X, dim=dims, keepdim=True))
+        return torch.min(torch.ones(norms.shape), eps / norms) * X
+    else:
+        return torch.clamp(X, min = -eps, max = eps)
 
 
 def set_seed(args):
