@@ -245,6 +245,18 @@ class ModelArguments:
         default=False,
         metadata={"help": "SQuAD v2.0 training"}
     )
+    null_score_diff_threshold: float = field(
+        default=0.0,
+        metadata={"help": "SQuAD v2.0 null threshold"}
+    )
+    n_best_size: int = field(
+        default=20,
+        metadata={"help": "Number of answers to evaluate"}
+    )
+    verbose_logging: bool = field(
+        default=False,
+        metadata={"help": "Logging for eval"}
+    )
     overwrite_cache: bool = field(
         default=False,
         metadata={"help": "Overwrite cached data on load"}
@@ -296,7 +308,7 @@ class ModelArguments:
         default=None,
         metadata={"help": "Path for data files"},
     )
-    task: Optional[str] = field(
-        default=None,
-        metadata={"help": "Currently supports qa"},
+    eval_all_checkpoints: Optional[str] = field(
+        default=False,
+        metadata={"help" : "Evaluate all checkpoints in output_dir"}
     )
