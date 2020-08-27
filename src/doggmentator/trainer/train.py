@@ -20,7 +20,7 @@ from transformers.data.metrics.squad_metrics import (
 
 from transformers.data.processors.squad import SquadResult
 
-from doggmentator.trainer.utils import tensor_to_list
+from doggmentator.trainer.utils import tensor_to_list, project
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +28,30 @@ if is_apex_available():
     from apex import amp
 
 class Trainer(HFTrainer):
-    def __init__(self, do_alum, **kwargs):
+    def __init__(self, model_args=None, **kwargs):
         super().__init__(**kwargs)
+
+        # Use torch default collate to bypass native
+        # HFTrainer collater when using SQuAD dataset
         if not kwargs['data_collator']:
             self.data_collator = default_collate
+
         self.args = kwargs['args']
-        if do_alum:
+
+        # Need to get do_alum from model_args 
+        self.params = model_args
+        if self.params and self.params.do_alum:
+            # Set static embedding layer
             self._embed_layer = self.model.bert.get_input_embeddings()
+            # ALUM step template
             self._step = self._alum_step
+            # Tracking training steps for ALUM grad accumulation
+            self._step_idx = 0
+            self._n_steps = len(self.get_train_dataloader())
+            # Initialize delta for ALUM adv grad
+            self._delta = None
         else:
+            # Use non-ALUM training step
             self._step = self._normal_step
 
     def _normal_step(
@@ -44,6 +59,7 @@ class Trainer(HFTrainer):
             model: nn.Module,
             batch: List,
             optimizer: torch.optim.Optimizer) -> float:
+
         model.train()
         batch = tuple(t.to(self.args.device) for t in batch)
 
@@ -64,11 +80,12 @@ class Trainer(HFTrainer):
         if self.args.gradient_accumulation_steps > 1:
             loss = loss / self.args.gradient_accumulation_steps
 
-        if self.args.fp16:
+        if self.args.fp16: #  assumes using apex
             with amp.scale_loss(loss, optimizer) as scaled_loss:
                 scaled_loss.backward()
         else:
             loss.backward()
+
         return loss.item()
 
     def _alum_step(
@@ -76,6 +93,10 @@ class Trainer(HFTrainer):
             model: nn.Module,
             batch: List,
             optimizer: torch.optim.Optimizer) -> float:
+
+            if self._n_steps < self._step_idx:
+                self._step_idx = 0
+            logger.debug('_step {} - of - {}'.format(self._step_idx, self._n_steps))
 
             batch = tuple(t.to(self.args.device) for t in batch)
             X = batch[0]  # input
@@ -96,23 +117,15 @@ class Trainer(HFTrainer):
             }
 
             # Initialize delta for every actual batch
-            if step % self.args.gradient_accumulation_steps == 0:
-                m = torch.distributions.multivariate_normal.MultivariateNormal(torch.zeros(768),torch.eye(768)*(sigma ** 2))
-                sample = m.sample((self.args.max_seq_length,))
-                delta = torch.tensor(sample, requires_grad = True, device = self.args.device)
+            if self._step_idx % self.args.gradient_accumulation_steps == 0:
+                m = torch.distributions.multivariate_normal.MultivariateNormal(torch.zeros(768),torch.eye(768)*(self.params.sigma ** 2))
+                sample = m.sample((self.params.max_seq_length,))
+                self._delta = torch.tensor(sample, requires_grad = True, device = self.args.device)
                 # delta = torch.nn.Parameter(delta)
                 # delta.requires_grad = True
                 # delta = delta.to(self.args.device)
 
             # Predict logits and generate normal loss with normal inputs_embeds
-            inputs = {
-                "input_ids": None,
-                "attention_mask": batch[1],
-                "token_type_ids": batch[2],
-                "start_positions": batch[3],
-                "end_positions": batch[4],
-                "inputs_embeds": input_embedding,
-            }
             outputs = model(**inputs)
             normal_loss, start_logits, end_logits = outputs[0:3]
             start_logits, end_logits = torch.argmax(start_logits, dim=1), torch.argmax(end_logits, dim=1)
@@ -123,7 +136,7 @@ class Trainer(HFTrainer):
             for param in model.parameters():
                 param.requires_grad = False
             # Iterative attack
-            for i in range(K):
+            for i in range(self.params.K):
                 # Generate adversarial gradients with perturbed inputs and target = predicted logits
                 inputs = {
                     "input_ids": None,
@@ -131,7 +144,7 @@ class Trainer(HFTrainer):
                     "token_type_ids": batch[2],
                     "start_positions": start_logits,
                     "end_positions": end_logits,
-                    "inputs_embeds": input_embedding + delta,
+                    "inputs_embeds": input_embedding + self._delta,
                 }
                 outputs = model(**inputs)
                 adv_loss = outputs[0]
@@ -148,14 +161,15 @@ class Trainer(HFTrainer):
                 else:
                     adv_loss.backward()
 
-                # Calculate g_adv and update delta every actual epoch
-                if (step + 1) % self.args.gradient_accumulation_steps == 0:
-                    # print(delta)
-                    # print(delta.grad)
-                    g_adv = delta.grad.data
-                    delta.data = project((delta + eta * g_adv), eps, 'inf')
-                    delta.grad.zero_()
-                    del g_adv
+            # Calculate g_adv and update delta every actual epoch
+            # TODO: confirm this update should occur after K iter
+            if (self._step_idx + 1) % self.args.gradient_accumulation_steps == 0:
+                # print(delta)
+                # print(delta.grad)
+                g_adv = self._delta.grad.data
+                self._delta.data = project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
+                self._delta.grad.zero_()
+                del g_adv
 
             # Set model to train mode and enable accumulation of gradients
             for param in model.parameters():
@@ -168,12 +182,12 @@ class Trainer(HFTrainer):
                 "token_type_ids": batch[2],
                 "start_positions": start_logits,
                 "end_positions": end_logits,
-                "inputs_embeds": input_embedding + delta,
+                "inputs_embeds": input_embedding + self._delta,
             }
             outputs = model(**inputs)
             adv_loss = outputs[0]
 
-            loss = normal_loss + alpha * adv_loss
+            loss = normal_loss + self.params.alpha * adv_loss
             if self.args.n_gpu > 1:
                 loss = loss.mean()  # mean() to average on multi-gpu parallel (not distributed) training
             if self.args.gradient_accumulation_steps > 1:
@@ -185,6 +199,8 @@ class Trainer(HFTrainer):
                     scaled_loss.backward()
             else:
                 loss.backward()
+
+            self._step_idx += 1
 
             return loss.item()
 
@@ -200,6 +216,8 @@ class Trainer(HFTrainer):
     def evaluate(
             self,
             prefix: str,
+            args,
+            tokenizer,
             dataset,
             examples,
             features):
@@ -254,27 +272,30 @@ class Trainer(HFTrainer):
         logger.info("  Evaluation done in total %f secs (%f sec per example)", evalTime, evalTime / len(dataset))
 
         # Compute predictions
+        '''
         output_prediction_file = os.path.join(self.args.output_dir, "predictions_{}.json".format(prefix))
         output_nbest_file = os.path.join(self.args.output_dir, "nbest_predictions_{}.json".format(prefix))
 
-        if self.args.version_2_with_negative:
+        if args.version_2_with_negative:
             output_null_log_odds_file = os.path.join(self.args.output_dir, "null_odds_{}.json".format(prefix))
         else:
             output_null_log_odds_file = None
+        '''
+        output_null_log_odds_file = output_nbest_file = output_prediction_file = None
 
         predictions = compute_predictions_logits(
             examples,
             features,
             all_results,
-            self.args.n_best_size,
-            self.args.max_answer_length,
-            self.args.do_lower_case,
+            args.n_best_size,
+            args.max_answer_length,
+            args.do_lower_case,
             output_prediction_file,
             output_nbest_file,
             output_null_log_odds_file,
-            self.args.verbose_logging,
-            self.args.version_2_with_negative,
-            self.args.null_score_diff_threshold,
+            args.verbose_logging,
+            args.version_2_with_negative,
+            args.null_score_diff_threshold,
             tokenizer,
         )
 
