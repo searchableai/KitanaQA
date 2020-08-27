@@ -226,12 +226,15 @@ class ModelArguments:
         metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
     )
     train_file_path: str = field(
-        metadata={"help": "Path for cached train dataset"},
+        metadata={"help": "Path for train dataset"},
     )
     predict_file_path: str = field(
         metadata={"help": "Path for cached eval dataset"},
     )
-    model_type: str = field(metadata={"help": "One of 'bert', 'albert', 'distilbert'"})
+    model_type: str = field(metadata={"help": "One of 'bert', 'albert'"})
+    aug_file_path: str = field(
+        default=None, metadata={"help": "Path for augmented train dataset"}
+    )
     tokenizer_name_or_path: Optional[str] = field(
         default=None, metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"}
     )
@@ -279,6 +282,10 @@ class ModelArguments:
     freeze_embeds: bool = field(
         default=False,
         metadata={"help": "Freeze token embeddings and positional embeddings for bart, just token embeddings for t5."}
+    )
+    do_aug: bool = field(
+        default=True,
+        metadata={"help": "Use Augmented training."}
     )
     do_alum: bool = field(
         default=True,
