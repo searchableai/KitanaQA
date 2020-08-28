@@ -2,32 +2,50 @@ import random
 import torch
 import os
 import logging
+import requests
+import glob
 import numpy as np
 from typing import Tuple
 from torch.utils.data import Dataset
 from transformers.data.processors.squad import SquadV1Processor, SquadV2Processor
 from transformers import squad_convert_examples_to_features
+from prefect import Flow, task
+from prefect.utilities.notifications import slack_notifier
+from doggmentator.trainer.train import Trainer
+from transformers import (
+    WEIGHTS_NAME,
+    AlbertConfig,
+    AlbertForQuestionAnswering,
+    AlbertTokenizer,
+    BertConfig,
+    BertForQuestionAnswering,
+    BertTokenizer,
+)
+
+MODEL_CLASSES = {
+    "albert": (AlbertConfig, AlbertForQuestionAnswering, AlbertTokenizer),
+    "bert": (BertConfig, BertForQuestionAnswering, BertTokenizer),
+}
 
 logger = logging.getLogger(__name__)
 
-
-def tensor_to_list(tensor):
-    return tensor.detach().cpu().tolist()
-
-
-def set_seed(args):
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    if args.n_gpu > 0:
-        torch.cuda.manual_seed_all(args.seed)
 
 def load_and_cache_examples(
         args,
         tokenizer,
         evaluate=False,
+        use_aug_path=False,
         output_examples=False) -> torch.utils.data.TensorDataset:
-    # Load data features from cache or dataset file
+    """
+    Load SQuAD-like data features from cache or dataset file
+    """
+
+    if not args.train_file_path and not (args.do_aug and args.aug_file_path):
+        logging.error('load_and_cache_examples requires one of either \"train_file_path\", \"aug_file_path\"')
+
+    # Use the augmented data or the original training data
+    train_or_aug_path = args.train_file_path if not use_aug_path else args.aug_file_path
+
     input_dir = args.data_dir if args.data_dir else "."
     cached_features_file = os.path.join(
         input_dir,
@@ -50,7 +68,7 @@ def load_and_cache_examples(
     else:
         logger.info("Creating features from dataset file at %s", input_dir)
 
-        if not args.data_dir and ((evaluate and not args.predict_file_path) or (not evaluate and not args.train_file_path)):
+        if not args.data_dir and ((evaluate and not args.predict_file_path) or (not evaluate and not train_or_aug_path)):
             try:
                 import tensorflow_datasets as tfds
             except ImportError:
@@ -66,7 +84,7 @@ def load_and_cache_examples(
             if evaluate:
                 examples = processor.get_dev_examples(args.data_dir, filename=args.predict_file_path)
             else:
-                examples = processor.get_train_examples(args.data_dir, filename=args.train_file_path)
+                examples = processor.get_train_examples(args.data_dir, filename=train_or_aug_path)
 
         features, dataset = squad_convert_examples_to_features(
             examples=examples,
@@ -85,3 +103,146 @@ def load_and_cache_examples(
     if output_examples:
         return dataset, examples, features
     return dataset
+
+
+slack_url = os.environ['SLACK_WEBHOOK_URL'] if 'SLACK_WEBHOOK_URL' in os.environ else None
+def post_to_slack(obj, old_state, new_state):
+    """
+    Post a msg to Slack url if configured, else simply return new_state object
+    """
+    if slack_url:
+        if new_state.is_finished():
+            msg = "{0} finished in state {1} --- results {2}".format(obj, new_state, new_state.result)
+
+            # replace URL with your Slack webhook URL
+            requests.post(slack_url, json={"text": msg})
+
+    return new_state
+
+
+@task(name="eval", state_handlers=[post_to_slack])
+def eval_task(args):
+    model_args, training_args = args
+    results = {}
+    if model_args.eval_all_checkpoints:
+        checkpoints = [training_args.output_dir]
+        checkpoints = list(
+            os.path.dirname(c)
+            for c in sorted(glob.glob(training_args.output_dir + "/**/" + WEIGHTS_NAME, recursive=True))
+        )
+        checkpoints = [x for x in checkpoints if 'checkpoint' in x]
+    else:
+        if os.path.exists(model_args.model_name_or_path):
+            raise Exception("Must specify parameter model_name_or_path")
+        checkpoints = [model_args.model_name_or_path]
+    for checkpoint in checkpoints:
+        # Load model and tokenizer
+        config, model_cls, tokenizer_cls = MODEL_CLASSES[model_args.model_type]
+        tokenizer = tokenizer_cls.from_pretrained(
+            model_args.tokenizer_name_or_path if model_args.tokenizer_name_or_path else model_args.model_name_or_path,
+            cache_dir=model_args.cache_dir,
+        )
+        model = model_cls.from_pretrained(
+            model_args.model_name_or_path,
+            cache_dir=model_args.cache_dir,
+        )
+
+        # Initialize the Trainer
+        trainer = Trainer(
+            data_collator=None,
+            model=model,
+            args=training_args,
+            prediction_loss_only=True,
+        )
+
+        # Load SQuAD-specific dataset and examples for metric calculation
+        dataset, examples, features = load_and_cache_examples(
+            model_args,
+            tokenizer,
+            evaluate=True,
+            output_examples=True)
+
+        model_idx = checkpoint.split("-")[-1]
+        results[model_idx] = {
+                                'model_args': model_args,
+                                'training_args':training_args,
+                                'eval':trainer.evaluate(
+                                        checkpoint,
+                                        model_args,
+                                        tokenizer,
+                                        dataset,
+                                        examples,
+                                        features)
+                            }
+    return results
+
+
+@task(name="train", state_handlers=[post_to_slack])
+def train_task(args, model, tokenizer, train_dataset):
+    model_args, training_args = args
+
+    # Initialize the Trainer
+    trainer = Trainer(
+        model_args=model_args,
+        data_collator=None,
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        prediction_loss_only=True,
+    )
+
+    # Training
+    trainer.train(
+        model_path=model_args.model_name_or_path if os.path.isdir(model_args.model_name_or_path) else None
+    )
+    trainer.save_model()
+    # For convenience, we also re-save the tokenizer to the same directory,
+    # so that you can share your model easily on huggingface.co/models =)
+    if trainer.is_world_master():
+        tokenizer.save_pretrained(training_args.output_dir)
+
+
+def build_flow(args, label: str='default-train', model=None, tokenizer=None, train_dataset=None):
+    model_args, training_args = args
+    with Flow(label) as f:
+        if training_args.do_eval and training_args.do_train:
+            res = eval_task(
+                    (model_args, training_args),
+                    upstream_tasks=[
+                        train_task(
+                            (model_args, training_args),
+                            model,
+                            tokenizer,
+                            train_dataset
+                        )
+                    ]
+                )
+        elif training_args.do_eval:
+            res = eval_task((model_args, training_args))
+        elif training_args.do_train:
+            res = train_task(
+                        (model_args, training_args),
+                        model,
+                        tokenizer,
+                        train_dataset
+                    )
+        else:
+            f = None
+            logging.error('Flow must be instantiated with at least one of \"do_train\", \"do_eval\"')
+    return f
+
+def is_apex_available():
+    try:
+        from apex import amp  # noqa: F401
+        _has_apex = True
+    except ImportError:
+        _has_apex = False
+    return _has_apex
+
+
+def set_seed(args):
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if args.n_gpu > 0:
+        torch.cuda.manual_seed_all(args.seed)

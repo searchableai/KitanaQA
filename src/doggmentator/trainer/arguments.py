@@ -226,12 +226,15 @@ class ModelArguments:
         metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
     )
     train_file_path: str = field(
-        metadata={"help": "Path for cached train dataset"},
+        metadata={"help": "Path for train dataset"},
     )
     predict_file_path: str = field(
         metadata={"help": "Path for cached eval dataset"},
     )
-    model_type: str = field(metadata={"help": "One of 'bert', 'albert', 'distilbert'"})
+    model_type: str = field(metadata={"help": "One of 'bert', 'albert'"})
+    aug_file_path: str = field(
+        default=None, metadata={"help": "Path for augmented train dataset"}
+    )
     tokenizer_name_or_path: Optional[str] = field(
         default=None, metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"}
     )
@@ -244,6 +247,18 @@ class ModelArguments:
     version_2_with_negative: bool = field(
         default=False,
         metadata={"help": "SQuAD v2.0 training"}
+    )
+    null_score_diff_threshold: float = field(
+        default=0.0,
+        metadata={"help": "SQuAD v2.0 null threshold"}
+    )
+    n_best_size: int = field(
+        default=20,
+        metadata={"help": "Number of answers to evaluate"}
+    )
+    verbose_logging: bool = field(
+        default=False,
+        metadata={"help": "Logging for eval"}
     )
     overwrite_cache: bool = field(
         default=False,
@@ -267,6 +282,10 @@ class ModelArguments:
     freeze_embeds: bool = field(
         default=False,
         metadata={"help": "Freeze token embeddings and positional embeddings for bart, just token embeddings for t5."}
+    )
+    do_aug: bool = field(
+        default=True,
+        metadata={"help": "Use Augmented training."}
     )
     do_alum: bool = field(
         default=True,
@@ -296,7 +315,7 @@ class ModelArguments:
         default=None,
         metadata={"help": "Path for data files"},
     )
-    task: Optional[str] = field(
-        default=None,
-        metadata={"help": "Currently supports qa"},
+    eval_all_checkpoints: Optional[str] = field(
+        default=False,
+        metadata={"help" : "Evaluate all checkpoints in output_dir"}
     )
