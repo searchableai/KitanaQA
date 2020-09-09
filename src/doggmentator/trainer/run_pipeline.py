@@ -18,8 +18,8 @@ from transformers import (
     TrainingArguments,
 )
 
-from doggmentator.trainer.arguments import ModelArguments
-from doggmentator.trainer.utils import set_seed, load_and_cache_examples, is_apex_available, post_to_slack, build_flow
+from arguments import ModelArguments
+from utils import set_seed, load_and_cache_examples, is_apex_available, post_to_slack, build_flow
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     # Initialize args
     parser = HfArgumentParser(dataclass_types=[ModelArguments, TrainingArguments])
-    args_file = "/home/ubuntu/dev/Doggmentator/src/doggmentator/trainer/args.json"
+    args_file = "/home/ubuntu/searchable/Doggmentator/src/doggmentator/trainer/args.json"
     model_args, training_args = parser.parse_json_file(args_file)
 
     if model_args.model_type not in list(MODEL_CLASSES.keys()):
