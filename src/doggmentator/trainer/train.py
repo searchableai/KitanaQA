@@ -3,6 +3,7 @@ import os
 import logging
 import timeit
 from tqdm import tqdm
+from typing import Optional
 
 from torch import nn
 from torch.utils.data import SequentialSampler, DataLoader
@@ -10,6 +11,7 @@ from torch.utils.data._utils.collate import default_collate
 from typing import List, Dict, Any
 
 from transformers import Trainer as HFTrainer
+from transformers import PreTrainedModel
 from transformers.file_utils import is_apex_available
 
 from transformers.data.metrics.squad_metrics import (
@@ -70,8 +72,7 @@ class Trainer(HFTrainer):
     def _normal_step(
             self,
             model: nn.Module,
-            batch: List,
-            optimizer: torch.optim.Optimizer) -> float:
+            batch: List) -> torch.Tensor:
 
         model.train()
         batch = tuple(t.to(self.args.device) for t in batch)
@@ -94,101 +95,67 @@ class Trainer(HFTrainer):
             loss = loss / self.args.gradient_accumulation_steps
 
         if self.args.fp16: #  assumes using apex
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
+            with amp.scale_loss(loss, self.optimizer) as scaled_loss:
                 scaled_loss.backward()
         else:
             loss.backward()
 
-        return loss.item()
+        return loss.detach()
+
+    def setup_comet(self):
+        pass
 
     def _alum_step(
             self,
             model: nn.Module,
-            batch: List,
-            optimizer: torch.optim.Optimizer) -> float:
+            batch: List) -> torch.Tensor:
 
-            if self._n_steps < self._step_idx:
-                self._step_idx = 0
-            logger.debug('_step {} - of - {}'.format(self._step_idx, self._n_steps))
+        # Reset step count each epoch
+        if (self._step_idx + 1) == self._n_steps:
+            self._step_idx = 0
+            logger.info('_step {} - of - {}'.format(self._step_idx, self._n_steps))
 
-            batch = tuple(t.to(self.args.device) for t in batch)
-            X = batch[0]  # input
-            with torch.no_grad():
-                input_embedding = self._embed_layer(X)
+        batch = tuple(t.to(self.args.device) for t in batch)
+        X = batch[0]  # input
+        with torch.no_grad():
+            input_embedding = self._embed_layer(X)
 
-            '''
-            In adversarial training, inject noise at embedding level, don't update embedding layer
-            When we set input_ids = None, and inputs_embeds != None, BertEmbedding.word_embeddings won't be invoked and won't be updated by back propagation
-            '''
-            inputs = {
-                "input_ids": None,
-                "attention_mask": batch[1],
-                "token_type_ids": batch[2],
-                "start_positions": batch[3],
-                "end_positions": batch[4],
-                "inputs_embeds": input_embedding,
-            }
+        '''
+        In adversarial training, inject noise at embedding level, don't update embedding layer
+        When we set input_ids = None, and inputs_embeds != None, BertEmbedding.word_embeddings won't be invoked and won't be updated by back propagation
+        '''
+        inputs = {
+            "input_ids": None,
+            "attention_mask": batch[1],
+            "token_type_ids": batch[2],
+            "start_positions": batch[3],
+            "end_positions": batch[4],
+            "inputs_embeds": input_embedding,
+        }
 
-            # Initialize delta for every actual batch
-            if self._step_idx % self.args.gradient_accumulation_steps == 0:
-                m = torch.distributions.multivariate_normal.MultivariateNormal(torch.zeros(768),torch.eye(768)*(self.params.sigma ** 2))
-                sample = m.sample((self.params.max_seq_length,))
-                self._delta = torch.tensor(sample, requires_grad = True, device = self.args.device)
-                # delta = torch.nn.Parameter(delta)
-                # delta.requires_grad = True
-                # delta = delta.to(self.args.device)
+        # Initialize delta for every actual batch
+        if self._step_idx % self.args.gradient_accumulation_steps == 0:
+            m = torch.distributions.multivariate_normal.MultivariateNormal(torch.zeros(768),torch.eye(768)*(self.params.sigma ** 2))
+            sample = m.sample((self.params.max_seq_length,))
+            self._delta = torch.tensor(sample, requires_grad = True, device = self.args.device)
+            # delta = torch.nn.Parameter(delta)
+            # delta.requires_grad = True
+            # delta = delta.to(self.args.device)
 
-            # Predict logits and generate normal loss with normal inputs_embeds
-            outputs = model(**inputs)
-            normal_loss, start_logits, end_logits = outputs[0:3]
-            start_logits, end_logits = torch.argmax(start_logits, dim=1), torch.argmax(end_logits, dim=1)
+        # Predict logits and generate normal loss with normal inputs_embeds
+        outputs = model(**inputs)
+        normal_loss, start_logits, end_logits = outputs[0:3]
+        start_logits, end_logits = torch.argmax(start_logits, dim=1), torch.argmax(end_logits, dim=1)
 
-            # Generation of attack shouldn't affect the gradients of model parameters
-            # Set model to inference mode and disable accumulation of gradients
-            model.eval()
-            for param in model.parameters():
-                param.requires_grad = False
-            # Iterative attack
-            for i in range(self.params.K):
-                # Generate adversarial gradients with perturbed inputs and target = predicted logits
-                inputs = {
-                    "input_ids": None,
-                    "attention_mask": batch[1],
-                    "token_type_ids": batch[2],
-                    "start_positions": start_logits,
-                    "end_positions": end_logits,
-                    "inputs_embeds": input_embedding + self._delta,
-                }
-                outputs = model(**inputs)
-                adv_loss = outputs[0]
+        # Generation of attack shouldn't affect the gradients of model parameters
+        # Set model to inference mode and disable accumulation of gradients
+        model.eval()
+        for param in model.parameters():
+            param.requires_grad = False
 
-                if self.args.n_gpu > 1:
-                    adv_loss = adv_loss.mean()  # mean() to average on multi-gpu parallel (not distributed) training
-                if self.args.gradient_accumulation_steps > 1:
-                    adv_loss = adv_loss / self.args.gradient_accumulation_steps
-
-                # Accumulating gradients for delta (g_adv) only, model gradients are not affected because we set model.eval()
-                if self.args.fp16:
-                    with amp.scale_loss(adv_loss, optimizer) as scaled_loss:
-                        scaled_loss.backward()
-                else:
-                    adv_loss.backward()
-
-                # Calculate g_adv and update delta every actual epoch
-                # TODO: confirm this update should occur only once per mini-batch
-                if (self._step_idx + 1) % self.args.gradient_accumulation_steps == 0:
-                    # print(delta)
-                    # print(delta.grad)
-                    g_adv = self._delta.grad.data
-                    self._delta.data = project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
-                    self._delta.grad.zero_()
-                    del g_adv
-
-            # Set model to train mode and enable accumulation of gradients
-            for param in model.parameters():
-                param.requires_grad = True
-            model.train()
-            # Generate adversarial loss with perturbed inputs against predicted logits
+        # Iterative attack
+        for i in range(self.params.K):
+            # Generate adversarial gradients with perturbed inputs and target = predicted logits
             inputs = {
                 "input_ids": None,
                 "attention_mask": batch[1],
@@ -200,31 +167,68 @@ class Trainer(HFTrainer):
             outputs = model(**inputs)
             adv_loss = outputs[0]
 
-            loss = normal_loss + self.params.alpha * adv_loss
             if self.args.n_gpu > 1:
-                loss = loss.mean()  # mean() to average on multi-gpu parallel (not distributed) training
+                adv_loss = adv_loss.mean()  # mean() to average on multi-gpu parallel (not distributed) training
             if self.args.gradient_accumulation_steps > 1:
-                loss = loss / self.args.gradient_accumulation_steps
+                adv_loss = adv_loss / self.args.gradient_accumulation_steps
 
-            # Accumulating gradients for all parameters in the model
+            # Accumulating gradients for delta (g_adv) only, model gradients are not affected because we set model.eval()
             if self.args.fp16:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
+                with amp.scale_loss(adv_loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
             else:
-                loss.backward()
+                adv_loss.backward()
 
-            self._step_idx += 1
+            # Calculate g_adv and update delta every actual epoch
+            # TODO: confirm this update should occur only once per mini-batch
+            if (self._step_idx + 1) % self.args.gradient_accumulation_steps == 0:
+                # print(delta)
+                # print(delta.grad)
+                g_adv = self._delta.grad.data
+                self._delta.data = project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
+                self._delta.grad.zero_()
+                del g_adv
 
-            return loss.item()
+        # Set model to train mode and enable accumulation of gradients
+        for param in model.parameters():
+            param.requires_grad = True
+        model.train()
+        # Generate adversarial loss with perturbed inputs against predicted logits
+        inputs = {
+            "input_ids": None,
+            "attention_mask": batch[1],
+            "token_type_ids": batch[2],
+            "start_positions": start_logits,
+            "end_positions": end_logits,
+            "inputs_embeds": input_embedding + self._delta,
+        }
+        outputs = model(**inputs)
+        adv_loss = outputs[0]
+
+        loss = normal_loss + self.params.alpha * adv_loss
+        if self.args.n_gpu > 1:
+            loss = loss.mean()  # mean() to average on multi-gpu parallel (not distributed) training
+        if self.args.gradient_accumulation_steps > 1:
+            loss = loss / self.args.gradient_accumulation_steps
+
+        # Accumulating gradients for all parameters in the model
+        if self.args.fp16:
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss.backward()
+
+        self._step_idx += 1
+
+        return loss.detach()
 
 
-    def _training_step(
+    def training_step(
             self,
             model: nn.Module,
             batch: List,
-            optimizer: torch.optim.Optimizer
-        ) -> float:
-        return self._step(model, batch, optimizer)
+        ) -> torch.Tensor:
+        return self._step(model, batch)
     
     def evaluate(
             self,
