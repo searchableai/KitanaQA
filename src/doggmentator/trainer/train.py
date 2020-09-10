@@ -174,7 +174,7 @@ class Trainer(HFTrainer):
 
             # Accumulating gradients for delta (g_adv) only, model gradients are not affected because we set model.eval()
             if self.args.fp16:
-                with amp.scale_loss(adv_loss, optimizer) as scaled_loss:
+                with amp.scale_loss(adv_loss, self.optimizer) as scaled_loss:
                     scaled_loss.backward()
             else:
                 adv_loss.backward()
@@ -213,7 +213,7 @@ class Trainer(HFTrainer):
 
         # Accumulating gradients for all parameters in the model
         if self.args.fp16:
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
+            with amp.scale_loss(loss, self.optimizer) as scaled_loss:
                 scaled_loss.backward()
         else:
             loss.backward()
