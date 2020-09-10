@@ -139,11 +139,11 @@ def eval_task(args):
         # Load model and tokenizer
         config, model_cls, tokenizer_cls = MODEL_CLASSES[model_args.model_type]
         tokenizer = tokenizer_cls.from_pretrained(
-            model_args.tokenizer_name_or_path if model_args.tokenizer_name_or_path else model_args.model_name_or_path,
+            model_args.tokenizer_name_or_path if model_args.tokenizer_name_or_path else checkpoint,
             cache_dir=model_args.cache_dir,
         )
         model = model_cls.from_pretrained(
-            model_args.model_name_or_path,
+            checkpoint,
             cache_dir=model_args.cache_dir,
         )
 
@@ -151,6 +151,7 @@ def eval_task(args):
         trainer = Trainer(
             data_collator=None,
             model=model,
+            tokenizer=tokenizer,
             args=training_args,
             prediction_loss_only=True,
         )
@@ -186,6 +187,7 @@ def train_task(args, model, tokenizer, train_dataset):
         model_args=model_args,
         data_collator=None,
         model=model,
+        tokenizer=tokenizer,
         args=training_args,
         train_dataset=train_dataset,
         prediction_loss_only=True,
