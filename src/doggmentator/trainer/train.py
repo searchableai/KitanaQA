@@ -24,7 +24,7 @@ from transformers.data.metrics.squad_metrics import (
 
 from transformers.data.processors.squad import SquadResult
 
-from utils import get_custom_exp, get_custom_linear
+from doggmentator.trainer.custom_schedulers import get_custom_exp, get_custom_linear
 
 #autograd.set_detect_anomaly(True)
 
