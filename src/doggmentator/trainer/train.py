@@ -8,10 +8,12 @@ from typing import Optional
 from torch import nn
 from torch.utils.data import SequentialSampler, DataLoader
 from torch.utils.data._utils.collate import default_collate
+from torch import autograd
+
 from typing import List, Dict, Any
 
 from transformers import Trainer as HFTrainer
-from transformers import PreTrainedModel
+from transformers import PreTrainedModel, AdamW
 from transformers.file_utils import is_apex_available
 
 from transformers.data.metrics.squad_metrics import (
@@ -21,6 +23,10 @@ from transformers.data.metrics.squad_metrics import (
 )
 
 from transformers.data.processors.squad import SquadResult
+
+from utils import get_custom_exp, get_custom_linear
+
+#autograd.set_detect_anomaly(True)
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +45,7 @@ def project(X, eps, order = 'inf'):
         norms = torch.sqrt(torch.sum(X * X, dim=dims, keepdim=True))
         return torch.min(torch.ones(norms.shape), eps / norms) * X
     else:
+        logger.info('=== projection max norms {}'.format(torch.norm(X)))
         return torch.clamp(X, min = -eps, max = eps)
 
 
@@ -56,6 +63,15 @@ class Trainer(HFTrainer):
         # Need to get do_alum from model_args 
         self.params = model_args
         if self.params and self.params.do_alum:
+            self.do_alum = True
+        else:
+            self.do_alum = False
+
+        if self.do_alum:
+            # Initialize delta for ALUM adv grad
+            self._delta = None
+            # Set ALUM optimizer
+            self._alum_optimizer = None
             # Set static embedding layer
             self._embed_layer = self.model.bert.get_input_embeddings()
             # ALUM step template
@@ -63,8 +79,7 @@ class Trainer(HFTrainer):
             # Tracking training steps for ALUM grad accumulation
             self._step_idx = 0
             self._n_steps = len(self.get_train_dataloader())
-            # Initialize delta for ALUM adv grad
-            self._delta = None
+            self._alpha = None
         else:
             # Use non-ALUM training step
             self._step = self._normal_step
@@ -105,15 +120,63 @@ class Trainer(HFTrainer):
     def setup_comet(self):
         pass
 
+    def log(self, logs: Dict[str, float], iterator: Optional[tqdm] = None) -> None:
+        """
+        Modified from HF Trainer base class
+
+        Log :obj:`logs` on the various objects watching training.
+
+        Subclass and override this method to inject custom behavior.
+
+        Args:
+            logs (:obj:`Dict[str, float]`):
+                The values to log.
+            iterator (:obj:`tqdm`, `optional`):
+                A potential tqdm progress bar to write the logs on.
+        """
+        if self.epoch is not None:
+            logs["epoch"] = self.epoch
+        if self.global_step is None:
+            # when logging evaluation metrics without training
+            self.global_step = 0
+
+        output = {**logs, **{"step": self.global_step}}
+        if self.do_alum:
+            output = {**output, **{"alpha": self._alpha}}
+        if iterator is not None:
+            iterator.write(output)
+        else:
+            print(output)
+        '''
+        if 'loss' in logs:
+            logger.info('\n==> loss: {}'.format(logs['loss']))
+        '''
+
     def _alum_step(
             self,
             model: nn.Module,
             batch: List) -> torch.Tensor:
 
-        # Reset step count each epoch
         if (self._step_idx + 1) == self._n_steps:
+            # Reset step count each epoch
             self._step_idx = 0
-            logger.info('_step {} - of - {}'.format(self._step_idx, self._n_steps))
+            # Reset step count each epoch
+            if self.params.alpha_schedule == 'expdecay' and self.params.alpha_final:
+                self._alpha = get_custom_exp(
+                                max_steps = self._n_steps,
+                                max_val = self.params.alpha,
+                                min_val = self.params.alpha_final
+                            )
+            elif self.params.alpha_schedule == 'linear' and self.params.alpha_final:
+                self._alpha = get_custom_linear(
+                                max_steps = self._n_steps,
+                                max_val = self.params.alpha,
+                                min_val = self.params.alpha_final
+                            )
+            else:
+                self._alpha = self.params.alpha
+
+            logger.debug('Resetting _step {} - of - {}'.format(self._step_idx, self._n_steps))
 
         batch = tuple(t.to(self.args.device) for t in batch)
         X = batch[0]  # input
@@ -138,9 +201,17 @@ class Trainer(HFTrainer):
             m = torch.distributions.multivariate_normal.MultivariateNormal(torch.zeros(768),torch.eye(768)*(self.params.sigma ** 2))
             sample = m.sample((self.params.max_seq_length,))
             self._delta = torch.tensor(sample, requires_grad = True, device = self.args.device)
-            # delta = torch.nn.Parameter(delta)
-            # delta.requires_grad = True
-            # delta = delta.to(self.args.device)
+            if not self._alum_optimizer:
+                optimizer_params = [
+                    {
+                        "params": self._delta
+                    }
+                ]
+                opt = AdamW(optimizer_params)
+                _, self._alum_optimizer = amp.initialize(
+                                                self.model,
+                                                opt,
+                                                opt_level=self.args.fp16_opt_level)
 
         # Predict logits and generate normal loss with normal inputs_embeds
         outputs = model(**inputs)
@@ -164,6 +235,7 @@ class Trainer(HFTrainer):
                 "end_positions": end_logits,
                 "inputs_embeds": input_embedding + self._delta,
             }
+
             outputs = model(**inputs)
             adv_loss = outputs[0]
 
@@ -174,25 +246,41 @@ class Trainer(HFTrainer):
 
             # Accumulating gradients for delta (g_adv) only, model gradients are not affected because we set model.eval()
             if self.args.fp16:
-                with amp.scale_loss(adv_loss, self.optimizer) as scaled_loss:
+                # Gradients are unscaled during context manager exit.
+                with amp.scale_loss(adv_loss, self._alum_optimizer) as scaled_loss:
                     scaled_loss.backward()
             else:
                 adv_loss.backward()
 
+            logger.info('\n=== delta.grad.data max norms {} - step {}'.format(torch.norm(self._delta.grad.data), self._step_idx))
             # Calculate g_adv and update delta every actual epoch
-            # TODO: confirm this update should occur only once per mini-batch
             if (self._step_idx + 1) % self.args.gradient_accumulation_steps == 0:
-                # print(delta)
-                # print(delta.grad)
+                if torch.any(torch.isnan(self._delta.data)):
+                    logger.info('\n==== delta.data NAN - step {}'.format(self._step_idx))
+
+                if torch.any(torch.isnan(self._delta.grad.data)):
+                    logger.info('\n==== delta.grad.data NAN - step {}'.format(self._step_idx))
+                    logger.info('\n=== adv_lss {}'.format(adv_loss))
+
                 g_adv = self._delta.grad.data
-                self._delta.data = project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
-                self._delta.grad.zero_()
+                logger.info('=== g_adv max norms {} - isna {}'.format(torch.norm(g_adv), torch.any(torch.isnan(torch.norm(g_adv)))))
+                logger.info('=== self._delta.data max norms {}'.format(torch.norm(self._delta.data)))
+
+                # Check for inf/NaN in delta grad. These can be introduced by instability in mixed-precision training.
+                # Skip delta update if inf/NaNs found.
+                if not torch.any(torch.isnan(g_adv)) and torch.all(torch.isfinite(g_adv)):
+                    self._delta.data = project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
+
+                if torch.any(torch.isnan(self._delta.data)):
+                    logger.info('\n==== projected delta.data NAN - step {}'.format(self._step_idx))
+
                 del g_adv
 
         # Set model to train mode and enable accumulation of gradients
         for param in model.parameters():
             param.requires_grad = True
         model.train()
+
         # Generate adversarial loss with perturbed inputs against predicted logits
         inputs = {
             "input_ids": None,
@@ -202,10 +290,11 @@ class Trainer(HFTrainer):
             "end_positions": end_logits,
             "inputs_embeds": input_embedding + self._delta,
         }
+
         outputs = model(**inputs)
         adv_loss = outputs[0]
 
-        loss = normal_loss + self.params.alpha * adv_loss
+        loss = normal_loss + self._alpha * adv_loss
         if self.args.n_gpu > 1:
             loss = loss.mean()  # mean() to average on multi-gpu parallel (not distributed) training
         if self.args.gradient_accumulation_steps > 1:
@@ -220,7 +309,7 @@ class Trainer(HFTrainer):
 
         self._step_idx += 1
 
-        return loss.detach()
+        return normal_loss.detach()
 
 
     def training_step(

@@ -299,6 +299,14 @@ class ModelArguments:
         default=1,
         metadata={"help": "ALUM loss weight."}
     )
+    alpha_final: Optional[float] = field(
+        default=None,
+        metadata={"help": "ALUM final value of loss weight."}
+    )
+    alpha_schedule: Optional[str] = field(
+        default=None,
+        metadats={"help": "ALUM alpha param schedule type."}
+    )
     eps: Optional[float] = field(
         default=1e-5,
         metadata={"help": "Perturbation radius in ALUM training."}
