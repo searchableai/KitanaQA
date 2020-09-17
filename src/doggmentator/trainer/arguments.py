@@ -305,7 +305,7 @@ class ModelArguments:
     )
     alpha_schedule: Optional[str] = field(
         default=None,
-        metadats={"help": "ALUM alpha param schedule type."}
+        metadata={"help": "ALUM alpha param schedule type."}
     )
     eps: Optional[float] = field(
         default=1e-5,
