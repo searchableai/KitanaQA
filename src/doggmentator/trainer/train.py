@@ -2,6 +2,7 @@ import torch
 import os
 import logging
 import timeit
+import itertools
 from tqdm import tqdm
 from typing import Optional
 
@@ -45,7 +46,7 @@ def project(X, eps, order = 'inf'):
         norms = torch.sqrt(torch.sum(X * X, dim=dims, keepdim=True))
         return torch.min(torch.ones(norms.shape), eps / norms) * X
     else:
-        logger.info('=== projection max norms {}'.format(torch.norm(X)))
+        logger.debug('\n=== projection max norms {}'.format(torch.norm(X)))
         return torch.clamp(X, min = -eps, max = eps)
 
 
@@ -147,20 +148,19 @@ class Trainer(HFTrainer):
             iterator.write(output)
         else:
             print(output)
-        '''
-        if 'loss' in logs:
-            logger.info('\n==> loss: {}'.format(logs['loss']))
-        '''
 
     def _alum_step(
             self,
             model: nn.Module,
             batch: List) -> torch.Tensor:
+        """ Training step using ALUM """
 
         if (self._step_idx + 1) == self._n_steps:
             # Reset step count each epoch
             self._step_idx = 0
-            # Reset step count each epoch
+
+        if self._step_idx == 0:
+            # Initialize alpha generator
             if self.params.alpha_schedule == 'expdecay' and self.params.alpha_final:
                 self._alpha = get_custom_exp(
                                 max_steps = self._n_steps,
@@ -174,9 +174,7 @@ class Trainer(HFTrainer):
                                 min_val = self.params.alpha_final
                             )
             else:
-                self._alpha = self.params.alpha
-
-            logger.debug('Resetting _step {} - of - {}'.format(self._step_idx, self._n_steps))
+                self._alpha = itertools.repeat(self.params.alpha, self._n_steps+1)
 
         batch = tuple(t.to(self.args.device) for t in batch)
         X = batch[0]  # input
@@ -199,7 +197,9 @@ class Trainer(HFTrainer):
         # Initialize delta for every actual batch
         if self._step_idx % self.args.gradient_accumulation_steps == 0:
             m = torch.distributions.multivariate_normal.MultivariateNormal(torch.zeros(768),torch.eye(768)*(self.params.sigma ** 2))
+            # TODO: clamp distribution
             sample = m.sample((self.params.max_seq_length,))
+            logger.debug('\n=== sample - min {} - max {}'.format(torch.min(torch.abs(sample)), torch.max(torch.abs(sample))))
             self._delta = torch.tensor(sample, requires_grad = True, device = self.args.device)
             if not self._alum_optimizer:
                 optimizer_params = [
@@ -247,32 +247,37 @@ class Trainer(HFTrainer):
             # Accumulating gradients for delta (g_adv) only, model gradients are not affected because we set model.eval()
             if self.args.fp16:
                 # Gradients are unscaled during context manager exit.
-                with amp.scale_loss(adv_loss, self._alum_optimizer) as scaled_loss:
+                #with amp.scale_loss(adv_loss, self._alum_optimizer) as scaled_loss:
+                with amp.scale_loss(adv_loss, self.optimizer) as scaled_loss:
                     scaled_loss.backward()
             else:
                 adv_loss.backward()
 
-            logger.info('\n=== delta.grad.data max norms {} - step {}'.format(torch.norm(self._delta.grad.data), self._step_idx))
+            logger.debug('\n=== delta.grad.data max norms {} - step {}'.format(torch.norm(self._delta.grad.data), self._step_idx))
             # Calculate g_adv and update delta every actual epoch
             if (self._step_idx + 1) % self.args.gradient_accumulation_steps == 0:
                 if torch.any(torch.isnan(self._delta.data)):
-                    logger.info('\n==== delta.data NAN - step {}'.format(self._step_idx))
+                    logger.debug('\n==== delta.data NAN - step {}'.format(self._step_idx))
 
                 if torch.any(torch.isnan(self._delta.grad.data)):
-                    logger.info('\n==== delta.grad.data NAN - step {}'.format(self._step_idx))
-                    logger.info('\n=== adv_lss {}'.format(adv_loss))
+                    logger.debug('\n==== delta.grad.data NAN - step {}'.format(self._step_idx))
+                    logger.debug('\n=== adv_lss {}'.format(adv_loss))
 
-                g_adv = self._delta.grad.data
-                logger.info('=== g_adv max norms {} - isna {}'.format(torch.norm(g_adv), torch.any(torch.isnan(torch.norm(g_adv)))))
-                logger.info('=== self._delta.data max norms {}'.format(torch.norm(self._delta.data)))
+                g_adv = self._delta.grad.data.detach()
+                logger.debug('\n=== g_adv max norms {} - isna {}'.format(torch.norm(g_adv), torch.any(torch.isnan(torch.norm(g_adv)))))
 
                 # Check for inf/NaN in delta grad. These can be introduced by instability in mixed-precision training.
-                # Skip delta update if inf/NaNs found.
-                if not torch.any(torch.isnan(g_adv)) and torch.all(torch.isfinite(g_adv)):
-                    self._delta.data = project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
+                # Skip delta update if inf/NaNs are found.
+                # TODO: replace NaN grads with mean, max_val, mask
+                if not torch.all(torch.isfinite(g_adv)):
+                    logger.debug('Detected inf/NaN in adv gradient. Replacing with grad mean.')
+                    g_adv[~torch.isfinite(g_adv)] = torch.mean(g_adv[torch.isfinite(g_adv)])
+                    logger.debug('\n=== scaled g_adv max norms {} - isna {}'.format(torch.norm(g_adv), torch.any(torch.isnan(torch.norm(g_adv)))))
+                logger.debug('\n=== self._delta.data max norms {}'.format(torch.norm(self._delta.data)))
+                self._delta.data = project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
 
                 if torch.any(torch.isnan(self._delta.data)):
-                    logger.info('\n==== projected delta.data NAN - step {}'.format(self._step_idx))
+                    logger.debug('\n==== projected delta.data NAN - step {}'.format(self._step_idx))
 
                 del g_adv
 
@@ -294,7 +299,8 @@ class Trainer(HFTrainer):
         outputs = model(**inputs)
         adv_loss = outputs[0]
 
-        loss = normal_loss + self._alpha * adv_loss
+        loss = normal_loss + next(self._alpha) * adv_loss
+        logger.debug('\n=== alpha {} - normal_loss {} - adv_loss {}'.format(self._alpha, normal_loss, adv_loss))
         if self.args.n_gpu > 1:
             loss = loss.mean()  # mean() to average on multi-gpu parallel (not distributed) training
         if self.args.gradient_accumulation_steps > 1:
