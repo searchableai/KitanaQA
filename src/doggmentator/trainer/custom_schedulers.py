@@ -33,10 +33,6 @@ def get_custom_linear(
     """
     Create a custom linear scheduler
     """
-    N0 = min(start_val, end_val)
-    N1 = max(start_val, end_val)
-    N3 = (N1-N0)/max_steps
-    if start_val > end_val:
-        N3 *= -1
-    update_fn = lambda x: N3 * x + start_val
+    N1 = (end_val-start_val)/max_steps
+    update_fn = lambda x: N1 * x + start_val
     return custom_scheduler(max_steps, update_fn)
