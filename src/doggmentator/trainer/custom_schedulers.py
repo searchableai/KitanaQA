@@ -21,7 +21,6 @@ def get_custom_exp(
     """
     N0 = max_val
     N1 = np.log(min_val/max_val)/max_steps
-    print(N0, N1)
     update_fn = lambda x: N0 * np.exp(N1 * x)
     return custom_scheduler(max_steps, update_fn)
 
