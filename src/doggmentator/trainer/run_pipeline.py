@@ -18,8 +18,8 @@ from transformers import (
     TrainingArguments,
 )
 
-from arguments import ModelArguments
-from utils import set_seed, load_and_cache_examples, is_apex_available, post_to_slack, build_flow
+from doggmentator.trainer.arguments import ModelArguments
+from doggmentator.trainer.utils import set_seed, load_and_cache_examples, is_apex_available, post_to_slack, build_flow
 
 logger = logging.getLogger(__name__)
 

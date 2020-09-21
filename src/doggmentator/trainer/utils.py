@@ -11,7 +11,7 @@ from transformers.data.processors.squad import SquadV1Processor, SquadV2Processo
 from transformers import squad_convert_examples_to_features
 from prefect import Flow, task
 from prefect.utilities.notifications import slack_notifier
-from train import Trainer
+from doggmentator.trainer.train import Trainer
 from transformers import (
     WEIGHTS_NAME,
     AlbertConfig,
@@ -31,80 +31,6 @@ logger = logging.getLogger(__name__)
 
 
 def load_and_cache_examples(
-        args,
-        tokenizer,
-        evaluate=False,
-        use_aug_path=False,
-        output_examples=False) -> torch.utils.data.TensorDataset:
-    """
-    Load SQuAD-like data features from cache or dataset file
-    """
-
-    if not args.train_file_path and not (args.do_aug and args.aug_file_path):
-        logging.error('load_and_cache_examples requires one of either \"train_file_path\", \"aug_file_path\"')
-
-    # Use the augmented data or the original training data
-    train_or_aug_path = args.train_file_path if not use_aug_path else args.aug_file_path
-
-    input_dir = args.data_dir if args.data_dir else "."
-    cached_features_file = os.path.join(
-        input_dir,
-        "cached_{}_{}_{}".format(
-            "dev" if evaluate else "train",
-            list(filter(None, args.model_name_or_path.split("/"))).pop(),
-            str(args.max_seq_length),
-        ),
-    )
-
-    # Init features and dataset from cache if it exists
-    if os.path.exists(cached_features_file) and not args.overwrite_cache:
-        logger.info("Loading features from cached file %s", cached_features_file)
-        features_and_dataset = torch.load(cached_features_file)
-        features, dataset, examples = (
-            features_and_dataset["features"],
-            features_and_dataset["dataset"],
-            features_and_dataset["examples"],
-        )
-    else:
-        logger.info("Creating features from dataset file at %s", input_dir)
-
-        if not args.data_dir and ((evaluate and not args.predict_file_path) or (not evaluate and not train_or_aug_path)):
-            try:
-                import tensorflow_datasets as tfds
-            except ImportError:
-                raise ImportError("If not data_dir is specified, tensorflow_datasets needs to be installed.")
-
-            if args.version_2_with_negative:
-                logger.warn("tensorflow_datasets does not handle version 2 of SQuAD.")
-
-            tfds_examples = tfds.load("squad")
-            examples = SquadV1Processor().get_examples_from_dataset(tfds_examples, evaluate=evaluate)
-        else:
-            processor = SquadV2Processor() if args.version_2_with_negative else SquadV1Processor()
-            if evaluate:
-                examples = processor.get_dev_examples(args.data_dir, filename=args.predict_file_path)
-            else:
-                examples = processor.get_train_examples(args.data_dir, filename=train_or_aug_path)
-
-        features, dataset = squad_convert_examples_to_features(
-            examples=examples,
-            tokenizer=tokenizer,
-            max_seq_length=args.max_seq_length,
-            doc_stride=args.doc_stride,
-            max_query_length=args.max_query_length,
-            is_training=not evaluate,
-            return_dataset="pt",
-            #threads=args.threads,
-        )
-
-        logger.info("Saving features into cached file %s", cached_features_file)
-        torch.save({"features": features, "dataset": dataset, "examples": examples}, cached_features_file)
-
-    if output_examples:
-        return dataset, examples, features
-    return dataset
-
-def load_and_cache_examples_v2(
         args,
         tokenizer,
         evaluate=False,
@@ -253,7 +179,7 @@ def eval_task(args):
         )
 
         # Load SQuAD-specific dataset and examples for metric calculation
-        dataset, examples, features = load_and_cache_examples_v2(
+        dataset, examples, features = load_and_cache_examples(
             model_args,
             tokenizer,
             evaluate=True,
@@ -277,7 +203,7 @@ def eval_task(args):
             all_eval_sets_results[predict_set] = results
             logger.info("The evaluation for %s dataset is finished.", predict_set)
     logger.info("Results: {}".format(all_eval_sets_results))
-    return results
+    return all_eval_sets_results
 
 
 @task(name="train", state_handlers=[post_to_slack])

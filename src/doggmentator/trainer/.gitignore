@@ -4,4 +4,4 @@ data/
 wandb/
 outputs/
 *.ipynb
-
+args.json
