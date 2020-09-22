@@ -155,7 +155,7 @@ def eval_task(args):
         )
         checkpoints = [x for x in checkpoints if 'checkpoint' in x]
     else:
-        if os.path.exists(model_args.model_name_or_path):
+        if not os.path.exists(model_args.model_name_or_path):
             raise Exception("Must specify parameter model_name_or_path")
         checkpoints = [model_args.model_name_or_path]
     for checkpoint in checkpoints:
