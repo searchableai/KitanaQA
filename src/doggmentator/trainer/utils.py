@@ -82,24 +82,47 @@ def load_and_cache_examples(
         else:
             processor = SquadV2Processor() if args.version_2_with_negative else SquadV1Processor()
             if evaluate:
-                examples = processor.get_dev_examples(args.data_dir, filename=args.predict_file_path)
+                # when does it concatenate if eval and train are both true?
+                examples = {}
+                for predict_sets, predict_paths in args.predict_file_path.items():
+                    examples[predict_sets] = processor.get_dev_examples(args.data_dir, filename=predict_paths)
+                    logger.info("Evaluation Data is fetched for %s.", predict_sets)
             else:
                 examples = processor.get_train_examples(args.data_dir, filename=train_or_aug_path)
+        
+        
+        if not evaluate:
+            features, dataset = squad_convert_examples_to_features(
+                examples=examples,
+                tokenizer=tokenizer,
+                max_seq_length=args.max_seq_length,
+                doc_stride=args.doc_stride,
+                max_query_length=args.max_query_length,
+                is_training=not evaluate,
+                return_dataset="pt",
+                #threads=args.threads,
+            )
 
-        features, dataset = squad_convert_examples_to_features(
-            examples=examples,
-            tokenizer=tokenizer,
-            max_seq_length=args.max_seq_length,
-            doc_stride=args.doc_stride,
-            max_query_length=args.max_query_length,
-            is_training=not evaluate,
-            return_dataset="pt",
-            #threads=args.threads,
-        )
-
-        logger.info("Saving features into cached file %s", cached_features_file)
-        torch.save({"features": features, "dataset": dataset, "examples": examples}, cached_features_file)
-
+            logger.info("Saving features into cached file %s", cached_features_file)
+            torch.save({"features": features, "dataset": dataset, "examples": examples}, cached_features_file)
+            
+        else:
+            features, dataset = {}, {}
+            for predict_sets, example in examples.items():
+                features[predict_sets], dataset[predict_sets] = squad_convert_examples_to_features(
+                examples=example,
+                tokenizer=tokenizer,
+                max_seq_length=args.max_seq_length,
+                doc_stride=args.doc_stride,
+                max_query_length=args.max_query_length,
+                is_training=not evaluate,
+                return_dataset="pt",
+                #threads=args.threads,
+                )
+                logger.info("Feature Extraction for Evaluation Data from %s is Finished.", predict_sets)
+            logger.info("Saving features into cached file %s", cached_features_file)
+            torch.save({"features": features, "dataset": dataset, "examples": examples}, cached_features_file)
+                
     if output_examples:
         return dataset, examples, features
     return dataset
@@ -123,7 +146,7 @@ def post_to_slack(obj, old_state, new_state):
 @task(name="eval", state_handlers=[post_to_slack])
 def eval_task(args):
     model_args, training_args = args
-    results = {}
+    all_eval_sets_results = {}
     if model_args.eval_all_checkpoints:
         checkpoints = [training_args.output_dir]
         checkpoints = list(
@@ -162,20 +185,26 @@ def eval_task(args):
             tokenizer,
             evaluate=True,
             output_examples=True)
-
-        model_idx = checkpoint.split("-")[-1]
-        results[model_idx] = {
-                                'model_args': model_args,
-                                'training_args':training_args,
-                                'eval':trainer.evaluate(
-                                        checkpoint,
-                                        model_args,
-                                        tokenizer,
-                                        dataset,
-                                        examples,
-                                        features)
+        
+        for predict_set in examples:
+            results = {}
+            model_idx = checkpoint.split("-")[-1]
+            print(f'The checkpoint check: {model_idx}')
+            results[model_idx] = {
+                                    'model_args': model_args,
+                                    'training_args':training_args,
+                                    'eval':trainer.evaluate(
+                                            checkpoint,
+                                            model_args,
+                                            tokenizer,
+                                            dataset[predict_set],
+                                            examples[predict_set],
+                                            features[predict_set])
                             }
-    return results
+            all_eval_sets_results[predict_set] = results
+            logger.info("The evaluation for %s dataset is finished.", predict_set)
+    logger.info("Results: {}".format(all_eval_sets_results))
+    return all_eval_sets_results
 
 
 @task(name="train", state_handlers=[post_to_slack])
