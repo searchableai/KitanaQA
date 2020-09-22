@@ -19,8 +19,9 @@ def get_custom_exp(
     """
     Create a custom exponential scheduler
     """
+    assert isinstance(max_steps, int) and max_steps >= 1
     N0 = max_val
-    N1 = np.log(min_val/max_val)/max_steps
+    N1 = np.log(min_val/max_val)/(max_steps-1)
     update_fn = lambda x: N0 * np.exp(N1 * x)
     return custom_scheduler(max_steps, update_fn)
 
@@ -32,6 +33,7 @@ def get_custom_linear(
     """
     Create a custom linear scheduler
     """
-    N1 = (end_val-start_val)/max_steps
+    assert isinstance(max_steps, int) and max_steps >= 1
+    N1 = (end_val-start_val)/(max_steps-1)
     update_fn = lambda x: N1 * x + start_val
     return custom_scheduler(max_steps, update_fn)
