@@ -75,11 +75,11 @@ class Trainer(HFTrainer):
             # Set ALUM optimizer
             self._alum_optimizer = None
             # Set ALUM scheduler
-            if self.params.alpha_schedule == 'expdecay' and self.params.alpha_final:
+            if self.params.alpha_schedule == 'exp' and self.params.alpha_final:
                 self._alpha_scheduler = get_custom_exp(
                                 max_steps = self.args.num_train_epochs,
-                                max_val = self.params.alpha,
-                                min_val = self.params.alpha_final
+                                start_val = self.params.alpha,
+                                end_val = self.params.alpha_final
                             )
             elif self.params.alpha_schedule == 'linear' and self.params.alpha_final:
                 self._alpha_scheduler = get_custom_linear(
@@ -311,6 +311,116 @@ class Trainer(HFTrainer):
             batch: List,
         ) -> torch.Tensor:
         return self._step(model, batch)
+
+
+    def alum_evaluate(
+            self,
+            prefix: str,
+            args,
+            tokenizer,
+            dataset,
+            examples,
+            features):
+
+        if not os.path.exists(self.args.output_dir) and self.args.local_rank in [-1, 0]:
+            os.makedirs(self.args.output_dir)
+
+        eval_batch_size = self.args.per_device_eval_batch_size * max(1, self.args.n_gpu)
+
+        # Note that DistributedSampler samples randomly
+        eval_sampler = SequentialSampler(dataset)
+        eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=eval_batch_size)
+
+        # multi-gpu evaluate
+        if self.args.n_gpu > 1 and not isinstance(self.model, torch.nn.DataParallel):
+            self.model = torch.nn.DataParallel(self.model)
+
+        # Eval!
+        logger.info("***** Running evaluation {} *****".format(prefix))
+        logger.info("  Num examples = %d", len(dataset))
+        logger.info("  Batch size = %d", eval_batch_size)
+
+        all_results = []
+        start_time = timeit.default_timer()
+
+        for batch in tqdm(eval_dataloader, desc="Evaluating"):
+
+            self.model.eval()
+            batch = tuple(t.to(self.args.device) for t in batch)
+
+            with torch.no_grad():
+                m = torch.distributions.multivariate_normal.MultivariateNormal(torch.zeros(768),torch.eye(768)*(args.sigma ** 2))
+                # Set static embedding layer
+                _embed_layer = model.bert.get_input_embeddings()
+                input_embedding = _embed_layer(batch[0])
+                output_k = []
+                k_iter = 1
+                for n in range(k_iter):
+                    _sample = m.sample((args.max_seq_length,))
+                    _delta = torch.tensor(_sample, requires_grad = False, device = self.args.device)
+                    inputs = {
+                        "input_ids": None,
+                        "attention_mask": batch[1],
+                        "token_type_ids": batch[2],
+                        "inputs_embeds": input_embedding + _delta,
+                    }
+
+                    outputs = model(**inputs)
+                    output_k.append(outputs)
+
+                example_indices = batch[3]
+
+            # Append results iter_k-wise for alum eval
+            for i, example_index in enumerate(example_indices):
+                eval_feature = features[example_index.item()]
+                unique_id = int(eval_feature.unique_id)
+
+                batch_results = []
+                for outputs in output_k:
+                    output = [tensor_to_list(output[i]) for output in outputs]
+
+                    start_logits, end_logits = output
+                    result = SquadResult(unique_id, start_logits, end_logits)
+
+                    batch_results.append(result)
+                all_results.append(batch_results)
+
+        eval_time = timeit.default_timer() - start_time
+        logger.info("  Evaluation done in total %f secs (%f sec per example)", eval_time, eval_time / len(dataset))
+
+        # Compute predictions
+        output_null_log_odds_file = output_nbest_file = output_prediction_file = None
+
+        alum_results = []
+        for batch in all_results:
+            batch_results = []
+            for iter_k in batch:
+                predictions = compute_predictions_logits(
+                    examples,
+                    features,
+                    iter_k
+                    args.n_best_size,
+                    args.max_answer_length,
+                    args.do_lower_case,
+                    output_prediction_file,
+                    output_nbest_file,
+                    output_null_log_odds_file,
+                    args.verbose_logging,
+                    args.version_2_with_negative,
+                    args.null_score_diff_threshold,
+                    tokenizer,
+                )
+
+                # Compute the F1 and exact scores.
+                results = squad_evaluate(examples, predictions)
+                batch_results.append(results)
+            batch_results = [(x['em'], x['f1']) for x in batch_results]
+            min_k = min(batch_results, key=itemgetter(1))
+            alum_results.append(min_k)
+        em_mean = sum([x[0] for x in alum_results])/len(alum_results) 
+        f1_mean = sum([x[1] for x in alum_results])/len(alum_results)
+        return {'f1':f1_mean, 'em': em_mean}
+
     
     def evaluate(
             self,
@@ -342,19 +452,39 @@ class Trainer(HFTrainer):
         start_time = timeit.default_timer()
 
         for batch in tqdm(eval_dataloader, desc="Evaluating"):
+
             self.model.eval()
             batch = tuple(t.to(self.args.device) for t in batch)
 
             with torch.no_grad():
-                inputs = {
-                    "input_ids": batch[0],
-                    "attention_mask": batch[1],
-                    "token_type_ids": batch[2],
-                }
+                if args.do_alum:
+                    m = torch.distributions.multivariate_normal.MultivariateNormal(torch.zeros(768),torch.eye(768)*(args.sigma ** 2))
+                    # Set static embedding layer
+                    _embed_layer = model.bert.get_input_embeddings()
+                    input_embedding = _embed_layer(batch[0])
+                    output_k = []
+                    k_iter = 1
+                    for n in range(k_iter):
+                        sample = m.sample((args.max_seq_length,))
+                        _delta = torch.tensor(sample, requires_grad = False, device = self.args.device)
+                        inputs = {
+                            "input_ids": None,
+                            "attention_mask": batch[1],
+                            "token_type_ids": batch[2],
+                            "inputs_embeds": input_embedding + _delta,
+                        }
+
+                        outputs = model(**inputs)
+                        output_k.append(outputs)
+                else:
+                    inputs = {
+                        "input_ids": batch[0],
+                        "attention_mask": batch[1],
+                        "token_type_ids": batch[2],
+                    }
+                    outputs = self.model(**inputs)
 
                 example_indices = batch[3]
-
-                outputs = self.model(**inputs)
 
             for i, example_index in enumerate(example_indices):
                 eval_feature = features[example_index.item()]
@@ -367,8 +497,8 @@ class Trainer(HFTrainer):
 
                 all_results.append(result)
 
-        evalTime = timeit.default_timer() - start_time
-        logger.info("  Evaluation done in total %f secs (%f sec per example)", evalTime, evalTime / len(dataset))
+        eval_time = timeit.default_timer() - start_time
+        logger.info("  Evaluation done in total %f secs (%f sec per example)", eval_time, eval_time / len(dataset))
 
         # Compute predictions
         '''
