@@ -107,6 +107,7 @@ def load_and_cache_examples(
             torch.save({"features": features, "dataset": dataset, "examples": examples}, cached_features_file)
             
         else:
+            #TODO: Incremental Cache - The current version will cache all the eval files together.
             features, dataset = {}, {}
             for predict_sets, example in examples.items():
                 features[predict_sets], dataset[predict_sets] = squad_convert_examples_to_features(
@@ -186,6 +187,7 @@ def eval_task(args):
             evaluate=True,
             output_examples=True)
         
+        logger.info("Predict Sets are : %s", examples.keys())
         for predict_set in examples:
             results = {}
             model_idx = checkpoint.split("-")[-1]

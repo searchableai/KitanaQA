@@ -228,7 +228,7 @@ class ModelArguments:
     train_file_path: str = field(
         metadata={"help": "Path for train dataset"},
     )
-    predict_file_path: str = field(
+    predict_file_path: Dict[str, str] = field(
         metadata={"help": "Path for cached eval dataset"},
     )
     model_type: str = field(metadata={"help": "One of 'bert', 'albert'"})
