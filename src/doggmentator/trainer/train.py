@@ -5,6 +5,7 @@ import timeit
 import itertools
 from tqdm import tqdm
 from typing import Optional
+from operator import itemgetter
 
 from torch import nn
 from torch.utils.data import SequentialSampler, DataLoader
@@ -398,7 +399,7 @@ class Trainer(HFTrainer):
                 predictions = compute_predictions_logits(
                     examples,
                     features,
-                    iter_k
+                    iter_k,
                     args.n_best_size,
                     args.max_answer_length,
                     args.do_lower_case,
