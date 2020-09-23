@@ -14,8 +14,8 @@ def custom_scheduler(
 
 def get_custom_exp(
         max_steps: int,
-        max_val: float,
-        min_val: float) -> Iterable:
+        start_val: float,
+        end_val: float) -> Iterable:
     """
     Create a custom exponential scheduler
     """
