@@ -192,7 +192,20 @@ def eval_task(args):
             results = {}
             model_idx = checkpoint.split("-")[-1]
             print(f'The checkpoint check: {model_idx}')
-            results[model_idx] = {
+            if model_args.do_alum:
+                results[model_idx] = {
+                                    'model_args': model_args,
+                                    'training_args':training_args,
+                                    'eval':trainer.alum_evaluate(
+                                            checkpoint,
+                                            model_args,
+                                            tokenizer,
+                                            dataset[predict_set],
+                                            examples[predict_set],
+                                            features[predict_set])
+                            }
+            else:
+                results[model_idx] = {
                                     'model_args': model_args,
                                     'training_args':training_args,
                                     'eval':trainer.evaluate(
