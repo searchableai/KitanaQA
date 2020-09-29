@@ -18,14 +18,12 @@ from typing import List, Dict, Any
 from transformers import Trainer as HFTrainer
 from transformers import PreTrainedModel, AdamW
 from transformers.file_utils import is_apex_available
+from transformers.data.processors.squad import SquadResult
 
-from transformers.data.metrics.squad_metrics import (
-    compute_predictions_log_probs,
+from doggmentator.trainer.squad_metrics import (
     compute_predictions_logits,
     squad_evaluate
 )
-
-from transformers.data.processors.squad import SquadResult
 
 from doggmentator.trainer.custom_schedulers import get_custom_exp, get_custom_linear
 from doggmentator import get_logger
@@ -433,18 +431,15 @@ class Trainer(HFTrainer):
                         example_id = list(adv.keys())[0]
                         adv_output = list(adv.values())
                         adv_features = [x for x in features if x.unique_id == unique_id]
-                        adv_examples = [examples[adv_features[0].example_index]]
-                        logger.debug('===adv_idx uid - {} ex_id - {} len_feat - {} len_adv_out - {} feat_id - {} feat_ex_id - {} ex_id - {}'.format(unique_id, example_id, len(adv_features), len(adv_output), adv_features[0].unique_id, adv_features[0].example_index, adv_examples[0].qas_id))
+                        adv_examples = [(adv_features[0].example_index, examples[adv_features[0].example_index])]
+                        logger.debug('===adv_idx uid - {} ex_id - {} len_feat - {} len_adv_out - {} feat_id - {} feat_ex_id - {} ex_id - {}'.format(unique_id, example_id, len(adv_features), len(adv_output), adv_features[0].unique_id, adv_features[0].example_index, adv_examples[0][1].qas_id))
                         predictions = compute_predictions_logits(
-                            examples,
+                            adv_examples,
                             adv_features,
                             adv_output,
                             args.n_best_size,
                             args.max_answer_length,
                             args.do_lower_case,
-                            output_prediction_file,
-                            output_nbest_file,
-                            output_null_log_odds_file,
                             args.verbose_logging,
                             args.version_2_with_negative,
                             args.null_score_diff_threshold,
@@ -453,7 +448,7 @@ class Trainer(HFTrainer):
                         logger.debug('===pred: ', predictions)
 
                         # Compute the F1 and exact scores.
-                        adv_metrics = squad_evaluate(adv_examples, predictions)
+                        adv_metrics = squad_evaluate([x[1] for x in adv_examples], predictions)
                         logger.debug('===adv_results:', adv_metrics)
                         all_adv_metrics.append((adv_metrics['exact'], adv_metrics['f1']))
                     batch_metrics.append(min(all_adv_metrics, key=itemgetter(1)))
