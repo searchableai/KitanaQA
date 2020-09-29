@@ -7,7 +7,6 @@ import copy
 from torch.utils.data import DataLoader
 import math
 from collections import Counter
-from doggmentator.drop_words import dropwords
 from doggmentator.term_replacement import *
 import logging
 logger = logging.getLogger().setLevel('INFO')
@@ -51,10 +50,19 @@ def format_squad(
             dataset[tle_id] = {}
         if ctx_id not in dataset[tle_id]:
             dataset[tle_id][ctx_id] = []
+        if not all([x['text'] for x in example['answers']]):
+            raise Exception('No answer found')
+        if not all([x['answer_start'] is not None for x in example['answers']]):
+            raise Exception('No answer_start found')
+        if not example['question']:
+            print('No question: ', example['aug_type'])
+            continue
         dataset[tle_id][ctx_id].append({
             'answers':example['answers'],
             'question':example['question'],
             'orig_id':qid,
+            'title_id':tle_id,
+            'context_id':ctx_id,
             'id':qid+unique_ids.pop(),
             'aug_type':example['aug_type']
         })
@@ -80,15 +88,16 @@ class MySQuADDataset(Dataset):
                 raw_examples: List,
                 importance_score_dict: List[tuple]=None,
                 is_training: bool=False,
-                sample_ratio: float=3.,
+                sample_ratio: float=4.,
                 num_replacements: int=2,
-                sampling_k: int=5,
+                sampling_k: int=3,
                 sampling_strategy: str='topK',
                 p_replace: float=0.1,
                 p_dropword: float=0.1,
                 p_misspelling: float=0.1,
                 save_freq: int=100,
-                from_checkpoint: bool=True):
+                from_checkpoint: bool=False,
+                out_prefix: str='dev'):
         """ Instantiate a MySQuADDataset instance"""
         hparams = {
             "num_replacements":num_replacements,
@@ -107,13 +116,16 @@ class MySQuADDataset(Dataset):
         title_map = {}
         context_map = {}
         ctx_id = 0
+        new_squad_examples = copy.deepcopy(raw_examples)
         for j,psg in enumerate(raw_examples['data']):
             title = psg['title']
             tle_id = j
             title_map[tle_id] = title
+            new_squad_examples['data'][j]['title_id'] = str(tle_id)
             for n,para in enumerate(psg['paragraphs']):
                 context = para['context']
                 context_map[ctx_id] = context
+                new_squad_examples['data'][j]['paragraphs'][n]['context_id'] = str(ctx_id)
                 for qa in para['qas']:
                     examples.append({
                         'qid':qa['id'],
@@ -123,13 +135,16 @@ class MySQuADDataset(Dataset):
                         'question':qa['question']
                     })
                 ctx_id += 1
+        with open('train-squadv1.json', 'w') as f:
+            json.dump(new_squad_examples, f)
+
         aug_examples = copy.deepcopy(examples)
 
         # Normalize probabilities of each augmentation
         probs = [p_dropword, p_replace, p_misspelling]
         probs = [p / sum(probs) for p in probs]
         augmentation_types = {
-            'drop': dropwords,
+            'drop': DropTerms(),
             'synonym': ReplaceTerms(rep_type='synonym'),
             'misspelling': ReplaceTerms(rep_type='misspelling')
         }
@@ -193,15 +208,34 @@ class MySQuADDataset(Dataset):
             sys.stdout.flush()
 
             for aug_type, aug_times in aug_type_freq.items():
+                # Randomly select a number of terms to replace
+                # up to the max `num_replacements`
+                reps = np.random.choice(np.arange(num_replacements), 1, replace=False)[0]
+
                 if aug_type == 'drop':
-                    aug_questions = augmentation_types[aug_type](question, N = 1, K = num_replacements)
+                    # Generate a dropword perturbation
+                    aug_questions = augmentation_types[aug_type].drop_terms(
+                                                            question,
+                                                            num_terms=reps,
+                                                            num_output_sents=aug_times)
                 else:
-                    aug_questions = augmentation_types[aug_type].replace_terms(sentence = question,
-                                                             importance_scores = importance_score,
-                                                             num_replacements = num_replacements,
-                                                             num_output_sents = aug_times,
-                                                             sampling_strategy = sampling_strategy,
-                                                             sampling_k = sampling_k)
+                    # Generate synonym and misspelling perturbations
+                    aug_questions = augmentation_types[aug_type].replace_terms(
+                                                            sentence = question,
+                                                            importance_scores = importance_score,
+                                                            num_replacements = reps,
+                                                            num_output_sents = aug_times,
+                                                            sampling_strategy = sampling_strategy,
+                                                            sampling_k = sampling_k)
+                    # Add an additional drop perturbation to each generated question
+                    aug_questions += [
+                                        augmentation_types['drop'].drop_terms(
+                                                        x,
+                                                        num_terms=reps,
+                                                        num_output_sents=1)
+                                        for x in aug_questions
+                                    ]
+                                                        
                 for aug_question in aug_questions:
                     if is_training:
                         aug_dataset.append({
@@ -230,9 +264,9 @@ class MySQuADDataset(Dataset):
 
         formatted_aug_dataset = format_squad(aug_dataset, title_map, context_map)
         print('Saving data')
-        with open('train_aug_seqs.json', 'w') as f:
+        with open(out_prefix+'_aug_seqs.json', 'w') as f:
             json.dump(aug_seqs, f)
-        with open('train_aug_squad_v1.json', 'w') as f:
+        with open(out_prefix+'_aug_squad_v1.json', 'w') as f:
             json.dump(formatted_aug_dataset, f)
         with open('hparams.json', 'w') as f:
             json.dump(hparams, f)
@@ -303,7 +337,7 @@ class MyTensorDataset(Dataset):
                                                              num_replacements = 1,
                                                              num_output_sents = aug_times,
                                                              sampling_strategy = 'topK',
-                                                             sampling_k = 5)
+                                                             sampling_k = sampling_k)
                 for aug_question in aug_questions:
                     data_dict = tokenizer.encode_plus(aug_question, context,
                                                       pad_to_max_length=True,
@@ -376,10 +410,10 @@ if __name__ == "__main__":
     )
     '''
 
+    out_prefix = 'train'
     #dataset = MyTensorDataset(raw_dataset, tokenizer, score_dict)
-    fname = '/home/ubuntu/dev/bootcamp/finetune/SQuAD/train/support/train-v1.1.json'
-    #fname = '/home/ubuntu/dev/bootcamp/finetune/SQuAD/eval/support/dev-v1.1.json'
+    fname = '/home/ubuntu/dev/bootcamp/finetune/SQuAD/train/support/'+out_prefix+'-v1.1.json'
     with open(fname, 'r') as f:
         data = json.load(f)
     #dataset = MyQADataset(data, score_dict)
-    dataset = MySQuADDataset(data)
+    dataset = MySQuADDataset(data, out_prefix=out_prefix, from_checkpoint=True)
