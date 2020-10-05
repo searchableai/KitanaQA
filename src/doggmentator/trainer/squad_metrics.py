@@ -385,6 +385,12 @@ def compute_predictions_logits(
 ):
     """Write final predictions to the json file and log-odds of null if needed."""
 
+    # Need to add indices by default if not specified. This is used in some 
+    # cases where we need to input specific examples out of order, and the
+    # usual indexed order is no longer valid
+    if not all([isinstance(x, tuple) for x in all_examples]):
+        all_examples = [(i, x) for i, x in enumerate(all_examples)]
+
     example_index_to_features = collections.defaultdict(list)
     for feature in all_features:
         example_index_to_features[feature.example_index].append(feature)
