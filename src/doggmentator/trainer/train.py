@@ -19,10 +19,10 @@ from transformers import Trainer as HFTrainer
 from transformers import PreTrainedModel, AdamW
 from transformers.file_utils import is_apex_available
 from transformers.data.processors.squad import SquadResult
+from transformers.data.metrics.squad_metrics import squad_evaluate
 
 from doggmentator.trainer.squad_metrics import (
     compute_predictions_logits,
-    squad_evaluate
 )
 
 from doggmentator.trainer.custom_schedulers import get_custom_exp, get_custom_linear
@@ -42,13 +42,23 @@ def tensor_to_list(tensor):
     return tensor.detach().cpu().tolist()
 
 
-def _adv_grad_project(X, eps, order = 'inf'):
+'''
+def _adv_alum_attack(X, eps, order = 'inf'):
     if order == 2:
         dims = list(range(1, X.dim()))
         norms = torch.sqrt(torch.sum(X * X, dim=dims, keepdim=True))
         return torch.min(torch.ones(norms.shape), eps / norms) * X
     else:
         return torch.clamp(X, min = -eps, max = eps)
+'''
+
+
+def _adv_sgn_attack(delta, eps, eps_iter, order = 'inf'):
+    if order == 'inf':
+        grad_sign = delta.grad.data.sign()
+        delta.data += eps * grad_sign
+        delta.data = torch.clamp(delta.data, min = -eps, max = eps)
+        return delta
 
 
 class Trainer(HFTrainer):
@@ -325,7 +335,8 @@ class Trainer(HFTrainer):
         if not os.path.exists(self.args.output_dir) and self.args.local_rank in [-1, 0]:
             os.makedirs(self.args.output_dir)
 
-        eval_batch_size = self.args.per_device_eval_batch_size * max(1, self.args.n_gpu)
+        # TODO Add batch attacks for eval
+        eval_batch_size = max(1, self.args.n_gpu)
 
         # Note that DistributedSampler samples randomly
         eval_sampler = SequentialSampler(dataset)
@@ -343,14 +354,12 @@ class Trainer(HFTrainer):
         all_results = []
         start_time = timeit.default_timer()
 
-        k_iter = 1
-        self.model.eval()
         _embed_layer = self.model.bert.get_input_embeddings()
+        self.model.eval()
         for batch in tqdm(eval_dataloader, desc="Evaluating"):
             batch = tuple(t.to(self.args.device) for t in batch)
             adv_outputs = []  # (k_iter, batch_size)
             # Set static embedding layer
-            #input_embedding = _embed_layer(batch[0])
             _delta = None
             for i_iter in range(args.K):
                 input_embedding = torch.stack([_embed_layer(x) for x in batch[0]])
@@ -377,85 +386,58 @@ class Trainer(HFTrainer):
 
                 # Calculate g_adv and update delta
                 g_adv = _delta.grad.data.detach()
-                _delta.data = _adv_grad_project((_delta + args.eta * g_adv), args.eps, 'inf')
+                #_delta.data = _adv_grad_project((_delta + args.eta * g_adv), args.eps, 'inf')
+                _delta = _adv_sgn_attack(_delta, args.eps, args.eta, 'inf')
                 logger.debug('===_delta norm {} - gadv norm {}'.format(torch.norm(_delta), torch.norm(g_adv)))
                 del g_adv
+            _delta.grad.zero_()
 
-                # TODO: Check inf/NaN. How should we proceed with eval if NaNs?
+            # TODO: Check inf/NaN. How should we proceed with eval if NaNs?
 
             with torch.no_grad():
                 # Generate adversarial loss with perturbed inputs against predicted logits
-                logger.debug('===embedding {} - delta {}'.format(torch.norm(input_embedding), torch.norm(_delta)))
                 inputs = {
                     "input_ids": None,
                     "attention_mask": batch[1],
                     "token_type_ids": batch[2],
-                    "inputs_embeds": input_embedding + 1e3*_delta,
+                    "inputs_embeds": input_embedding + _delta
                 }
+                adv_outputs = self.model(**inputs)
 
-                outputs = self.model(**inputs)
-                adv_outputs.append(outputs)
-
-            example_indices = batch[3]
-
-            batch_results = []
+                example_indices = batch[5]
 
             for i, example_index in enumerate(example_indices):
-                adv_results = []
-                example_id = example_index.item()
                 eval_feature = features[example_index.item()]
                 unique_id = int(eval_feature.unique_id)
-                for n,adv_output in enumerate(adv_outputs):
-                    output = [tensor_to_list(output[i]) for output in adv_output]
-                    start_logits, end_logits = output
-                    result = SquadResult(unique_id, start_logits, end_logits)
-                    adv_results.append({example_id:result})
-                batch_results.append(adv_results)  # (examples, k_iter_results)
-            all_results.append(batch_results)  # (num_batches, batch_size, k_iter)
 
-        with torch.no_grad():
+                adv_output = [tensor_to_list(output[i]) for output in adv_outputs]
 
-            eval_time = timeit.default_timer() - start_time
-            logger.info("  Evaluation done in total %f secs (%f sec per example)", eval_time, eval_time / len(dataset))
+                start_logits, end_logits = adv_output
+                result = SquadResult(unique_id, start_logits, end_logits)
+                example_id = example_index.item()
+                all_results.append(result)
 
-            # Compute predictions
-            output_null_log_odds_file = output_nbest_file = output_prediction_file = None
+        eval_time = timeit.default_timer() - start_time
+        logger.info("  Evaluation done in total %f secs (%f sec per example)", eval_time, eval_time / len(dataset))
 
-            alum_results = []
-            for n in all_results:
-                batch_metrics = []
-                for ex in n:
-                    all_adv_metrics = []
-                    for adv in ex:
-                        unique_id = list(adv.values())[0].unique_id
-                        example_id = list(adv.keys())[0]
-                        adv_output = list(adv.values())
-                        adv_features = [x for x in features if x.unique_id == unique_id]
-                        adv_examples = [(adv_features[0].example_index, examples[adv_features[0].example_index])]
-                        logger.debug('===adv_idx uid - {} ex_id - {} len_feat - {} len_adv_out - {} feat_id - {} feat_ex_id - {} ex_id - {}'.format(unique_id, example_id, len(adv_features), len(adv_output), adv_features[0].unique_id, adv_features[0].example_index, adv_examples[0][1].qas_id))
-                        predictions = compute_predictions_logits(
-                            adv_examples,
-                            adv_features,
-                            adv_output,
-                            args.n_best_size,
-                            args.max_answer_length,
-                            args.do_lower_case,
-                            args.verbose_logging,
-                            args.version_2_with_negative,
-                            args.null_score_diff_threshold,
-                            tokenizer,
-                        )
-                        logger.debug('===pred: ', predictions)
-
-                        # Compute the F1 and exact scores.
-                        adv_metrics = squad_evaluate([x[1] for x in adv_examples], predictions)
-                        logger.debug('===adv_results:', adv_metrics)
-                        all_adv_metrics.append((adv_metrics['exact'], adv_metrics['f1']))
-                    batch_metrics.append(min(all_adv_metrics, key=itemgetter(1)))
-                alum_results.append(batch_metrics)
-            alum_results = [i for l in alum_results for i in l]
-            logger.debug('alum_res: {} -  em {} - f1 {}'.format(alum_results, np.mean([x[0] for x in alum_results]), np.mean([x[1] for x in alum_results])))
-            return alum_results
+        # Compute predictions
+        alum_results = []
+        adv_predictions = None
+        predictions = compute_predictions_logits(
+            examples,
+            features,
+            all_results,
+            args.n_best_size,
+            args.max_answer_length,
+            args.do_lower_case,
+            args.verbose_logging,
+            args.version_2_with_negative,
+            args.null_score_diff_threshold,
+            tokenizer,
+        )
+        alum_results = squad_evaluate(examples, predictions) 
+        print('===alum_results: ', alum_results)
+        return alum_results
 
     
     def evaluate(
@@ -491,7 +473,6 @@ class Trainer(HFTrainer):
 
             self.model.eval()
             batch = tuple(t.to(self.args.device) for t in batch)
-
             with torch.no_grad():
                 inputs = {
                     "input_ids": batch[0],
@@ -500,7 +481,7 @@ class Trainer(HFTrainer):
                 }
                 outputs = self.model(**inputs)
 
-                example_indices = batch[3]
+                example_indices = batch[5]
 
             for i, example_index in enumerate(example_indices):
                 eval_feature = features[example_index.item()]
@@ -517,16 +498,6 @@ class Trainer(HFTrainer):
         logger.info("  Evaluation done in total %f secs (%f sec per example)", eval_time, eval_time / len(dataset))
 
         # Compute predictions
-        '''
-        output_prediction_file = os.path.join(self.args.output_dir, "predictions_{}.json".format(prefix))
-        output_nbest_file = os.path.join(self.args.output_dir, "nbest_predictions_{}.json".format(prefix))
-
-        if args.version_2_with_negative:
-            output_null_log_odds_file = os.path.join(self.args.output_dir, "null_odds_{}.json".format(prefix))
-        else:
-            output_null_log_odds_file = None
-        '''
-        output_null_log_odds_file = output_nbest_file = output_prediction_file = None
 
         predictions = compute_predictions_logits(
             examples,
@@ -535,9 +506,6 @@ class Trainer(HFTrainer):
             args.n_best_size,
             args.max_answer_length,
             args.do_lower_case,
-            output_prediction_file,
-            output_nbest_file,
-            output_null_log_odds_file,
             args.verbose_logging,
             args.version_2_with_negative,
             args.null_score_diff_threshold,
