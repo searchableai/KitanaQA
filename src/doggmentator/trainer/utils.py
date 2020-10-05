@@ -12,6 +12,12 @@ from transformers import squad_convert_examples_to_features
 from prefect import Flow, task
 from prefect.utilities.notifications import slack_notifier
 from doggmentator.trainer.train import Trainer
+from doggmentator.trainer.alum_squad_processor import (
+    alum_squad_convert_examples_to_features,
+    AlumSquadV1Processor,
+    AlumSquadV2Processor
+)
+
 from transformers import (
     WEIGHTS_NAME,
     AlbertConfig,
@@ -80,14 +86,15 @@ def load_and_cache_examples(
             tfds_examples = tfds.load("squad")
             examples = SquadV1Processor().get_examples_from_dataset(tfds_examples, evaluate=evaluate)
         else:
-            processor = SquadV2Processor() if args.version_2_with_negative else SquadV1Processor()
             if evaluate:
                 # when does it concatenate if eval and train are both true?
                 examples = {}
+                processor = AlumSquadV2Processor() if args.version_2_with_negative else AlumSquadV1Processor()
                 for predict_sets, predict_paths in args.predict_file_path.items():
-                    examples[predict_sets] = processor.get_dev_examples(args.data_dir, filename=predict_paths)
+                    examples[predict_sets] = processor.alum_get_dev_examples(args.data_dir, filename=predict_paths)
                     logger.info("Evaluation Data is fetched for %s.", predict_sets)
             else:
+                processor = SquadV2Processor() if args.version_2_with_negative else SquadV1Processor()
                 examples = processor.get_train_examples(args.data_dir, filename=train_or_aug_path)
         
         
@@ -110,15 +117,14 @@ def load_and_cache_examples(
             #TODO: Incremental Cache - The current version will cache all the eval files together.
             features, dataset = {}, {}
             for predict_sets, example in examples.items():
-                features[predict_sets], dataset[predict_sets] = squad_convert_examples_to_features(
-                examples=example,
-                tokenizer=tokenizer,
-                max_seq_length=args.max_seq_length,
-                doc_stride=args.doc_stride,
-                max_query_length=args.max_query_length,
-                is_training=not evaluate,
-                return_dataset="pt",
-                #threads=args.threads,
+                features[predict_sets], dataset[predict_sets] = alum_squad_convert_examples_to_features(
+                    examples=example,
+                    tokenizer=tokenizer,
+                    max_seq_length=args.max_seq_length,
+                    doc_stride=args.doc_stride,
+                    max_query_length=args.max_query_length,
+                    return_dataset="pt",
+                    #threads=args.threads,
                 )
                 logger.info("Feature Extraction for Evaluation Data from %s is Finished.", predict_sets)
             logger.info("Saving features into cached file %s", cached_features_file)
