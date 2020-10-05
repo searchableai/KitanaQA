@@ -104,7 +104,7 @@ if __name__ == "__main__":
     # Load aug dataset
     if training_args.do_train and model_args.do_aug:
         aug_dataset = load_and_cache_examples(model_args, tokenizer, use_aug_path=True)
-        logger.info('Concatenete augmented examples to original examples. Train length = {} - Aug length = {}'.format(len(train_dataset), len(aug_dataset)))
+        logger.info('Concatenate augmented examples to original examples. Train length = {}, Aug length = {}'.format(len(train_dataset), len(aug_dataset)))
         train_dataset += aug_dataset
 
     f = build_flow(
