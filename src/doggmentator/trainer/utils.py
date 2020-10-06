@@ -211,6 +211,22 @@ def eval_task(args):
 
 @task(name="train", state_handlers=[post_to_slack])
 def train_task(args, model, tokenizer, train_dataset):
+    """Train the model on using the training dataset
+
+    Parameters
+    ----------
+    args : tuple
+        A tuple including the ModelArguments (doggmentator.trainer.arguments.ModelArguments) and TrainingArguments (transformers.training_args.TrainingArguments). Specifically, the following arguments from the ModelArguments are used in this function:
+        - model_name_or_path : str
+              Path to pretrained model or model identifier from huggingface.co/models
+        The following arguments from the TrainingArguments are used in this function:
+        - output_dir : str
+              The output directory where the model predictions and checkpoints will be written.
+
+    Returns
+    -------
+    This function does not return anything. It trains the model and save it.
+    """
     model_args, training_args = args
 
     # Initialize the Trainer
