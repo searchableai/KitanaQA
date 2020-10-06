@@ -36,8 +36,50 @@ def load_and_cache_examples(
         evaluate=False,
         use_aug_path=False,
         output_examples=False) -> torch.utils.data.TensorDataset:
-    """
-    Load SQuAD-like data features from cache or dataset file
+    
+    """Loads SQuAD-like data features from dataset file (or cache)
+
+    Parameters
+    ----------
+    args : doggmentator.trainer.arguments.ModelArguments
+        A set of arguments related to the model. Specifically, the following arguments are used in this function:
+        - args.train_file_path : str
+              Path to the training data files
+        - args.do_aug : bool
+              Boolean variable to clarify whether the augmented training is to be used.
+        - args.aug_file_path : str
+              Path for augmented train dataset
+        - args.data_dir : str
+              Path for data files
+        - args.model_name_or_path : str
+              Path to pretrained model or model identifier from huggingface.co/models
+        - args.max_seq_length : Optional[int]
+              Max length for the input tokens
+        - args.overwrite_cache : Bool
+              Overwrite cached data on load
+        - args.predict_file_path : Dict[str, str]
+              Paths for cached eval datasets
+        - args.version_2_with_negative : Bool
+              SQuAD v2.0 training
+        - args.doc_stride : Optional[int]
+        - args.max_query_length : Optional[int]
+              Max length for the query segment
+    tokenizer : 
+        The tokenizer used to preprocess the data.
+    evaluate : Bool
+        A boolean variabla describing whether this is an evaluation or training dataset.
+    use_aug_path : Bool
+        A boolean variable to clarify whether a augemented data path is given. If it is given, the augmented data path is used loading and caching the data.
+    output_examples : Bool
+        a boolean variable to clarify whether the examples and the features should also given as an output. If False, the function only returns the dataset.
+
+    Returns
+    -------
+    torch.utils.data.TensorDataset
+        The dataset containing the data to be used for training or evaluation.
+        Important Notes:
+        - If the output_examples is True, examples and features also are returned.
+        - If evaluate = True, the output will be a dictionary for which the keys are the name of the datasets used for evaluation and the values are the dataset (and optionally the examples and features)
     """
 
     if not args.train_file_path and not (args.do_aug and args.aug_file_path):
@@ -146,6 +188,52 @@ def post_to_slack(obj, old_state, new_state):
 
 @task(name="eval", state_handlers=[post_to_slack])
 def eval_task(args):
+    """Evaluates the model on a the evaluation datasets
+
+    Parameters
+    ----------
+    args : tuple
+        A tuple including the ModelArguments (doggmentator.trainer.arguments.ModelArguments) and TrainingArguments (transformers.training_args.TrainingArguments). Specifically, the following arguments from the ModelArguments are used in this function:
+        - eval_all_checkpoints : bool
+              Evaluate all the checkpoints
+        - model_name_or_path : str
+              Path to pretrained model or model identifier from huggingface.co/models
+        - model_type : str
+              Currently, one of either 'bert' or 'albert' models
+        - tokenizer_name_or_path : str
+              Pretrained tokenizer name or path if not the same as model_name
+        - cache_dir : str
+              The path to store the pretrained models
+        The following arguments from the TrainingArguments are used in this function:
+        - output_dir : str
+              The output directory where the model predictions and checkpoints will be written.
+
+    Returns
+    -------
+    Dict[str : Dict[str : ModelArguments, str : TrainingArguments, str : OrderedDict]
+        The evaluation results for various evaluation datasets and checkpoints. The following example shows the general structure of the evaluation results. 'squad_dev1.1' is the name of the evaluation dataset and '1000' is the checkpoint. To better understand different metrics, please refer to squad_evaluate function in: https://github.com/huggingface/transformers/blob/master/src/transformers/data/metrics/squad_metrics.py 
+        Example:
+          {'squad_dev1.1': 
+            {'1000' : 
+              {'model_args' : ModelArguments(...), 
+               'training_args': TrainingArguments (...), 
+               'eval': OrderedDict(
+                                   [('exact', ...), 
+                                    ('f1', ...), 
+                                    ('total', ...), 
+                                    ('HasAns_exact', ...), 
+                                    ('HasAns_f1', ...), 
+                                    ('HasAns_total', ...), 
+                                    ('best_exact', ...), 
+                                    ('best_exact_thresh', ...), 
+                                    ('best_f1', ...), 
+                                    ('best_f1_thresh', ...)
+                                   ]
+                                  )
+             }
+           }
+         }
+    """
     model_args, training_args = args
     all_eval_sets_results = {}
     if model_args.eval_all_checkpoints:
