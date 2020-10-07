@@ -78,12 +78,17 @@ class Trainer(HFTrainer):
 
         # Need to get do_alum from model_args 
         self.params = model_args
+
         if self.params and self.params.do_alum:
             self.do_alum = True
         else:
             self.do_alum = False
 
-        if self.do_alum:
+        if self.do_alum and self.params.model_type not in ['bert','distilbert','albert']:
+            msg = 'Only bert, albert, distilbert models are support in ALUM training'
+            raise NotImplementedError(msg)
+
+        if self.do_alum and self.args.do_train:
             # Initialize delta for ALUM adv grad
             self._delta = None
             # Set ALUM optimizer
@@ -105,14 +110,17 @@ class Trainer(HFTrainer):
                 self._alpha_scheduler = itertools.repeat(self.params.alpha, self.args.num_train_epochs)
 
             # Set static embedding layer
-            self._embed_layer = self.model.bert.get_input_embeddings()
+            if self.params.model_type == 'bert':
+                self._embed_layer = self.model.bert.get_input_embeddings()
+            elif self.params.model_type == 'distilbert':
+                self._embed_layer = self.model.distilbert.get_input_embeddings()
             # ALUM step template
             self._step = self._alum_step
             # Tracking training steps for ALUM grad accumulation
             self._step_idx = 0
             self._n_steps = len(self.get_train_dataloader())
             self._alpha = None
-        else:
+        elif self.args.do_train:
             # Use non-ALUM training step
             self._step = self._normal_step
 
@@ -131,6 +139,8 @@ class Trainer(HFTrainer):
             "start_positions": batch[3],
             "end_positions": batch[4],
         }
+        if self.params.model_type in ["xlm", "roberta", "distilbert"]:
+            del inputs["token_type_ids"]
 
         outputs = model(**inputs)
         # model outputs are always tuple in transformers (see doc)
@@ -211,6 +221,8 @@ class Trainer(HFTrainer):
             "end_positions": batch[4],
             "inputs_embeds": input_embedding,
         }
+        if self.params.model_type in ["xlm", "roberta", "distilbert"]:
+            del inputs["token_type_ids"]
 
         # Initialize delta for every actual batch
         if self._step_idx % self.args.gradient_accumulation_steps == 0:
@@ -225,10 +237,13 @@ class Trainer(HFTrainer):
                     }
                 ]
                 opt = AdamW(optimizer_params)
-                _, self._alum_optimizer = amp.initialize(
+                if self.args.fp16:
+                    _, self._alum_optimizer = amp.initialize(
                                                 self.model,
                                                 opt,
                                                 opt_level=self.args.fp16_opt_level)
+                else:
+                    self._alum_optimizer = opt
 
         # Predict logits and generate normal loss with normal inputs_embeds
         outputs = model(**inputs)
@@ -252,6 +267,8 @@ class Trainer(HFTrainer):
                 "end_positions": end_logits,
                 "inputs_embeds": input_embedding + self._delta,
             }
+            if self.params.model_type in ["xlm", "roberta", "distilbert"]:
+                del inputs["token_type_ids"]
 
             outputs = model(**inputs)
             adv_loss = outputs[0]
@@ -296,6 +313,8 @@ class Trainer(HFTrainer):
             "end_positions": end_logits,
             "inputs_embeds": input_embedding + self._delta,
         }
+        if self.params.model_type in ["xlm", "roberta", "distilbert"]:
+            del inputs["token_type_ids"]
 
         outputs = model(**inputs)
         adv_loss = outputs[0]
@@ -482,6 +501,12 @@ class Trainer(HFTrainer):
                     "attention_mask": batch[1],
                     "token_type_ids": batch[2],
                 }
+
+                if self.params.model_type in ["xlm", "roberta", "distilbert"]:
+                    del inputs["token_type_ids"]
+
+                example_indices = batch[3]
+
                 outputs = self.model(**inputs)
 
                 example_indices = batch[5]
