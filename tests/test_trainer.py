@@ -24,12 +24,10 @@ MODEL_CLASSES = {
     "bert": (BertConfig, BertForQuestionAnswering, BertTokenizer),
 }
 
-TRAIN_PATH = '/'.join([pkg_resources.resource_filename(
-            'doggmentator', '').split('src')[0],
-            'tests/support/test-train.json'])
-EVAL_PATH = '/'.join([pkg_resources.resource_filename(
-            'doggmentator', '').split('src')[0],
-            'tests/support/test-dev.json'])
+TRAIN_PATH = pkg_resources.resource_filename(
+            'doggmentator', 'support/unittest-squad.json')
+EVAL_PATH = pkg_resources.resource_filename(
+            'doggmentator', 'support/unittest-squad.json')
 
 
 class dotdict(dict):
