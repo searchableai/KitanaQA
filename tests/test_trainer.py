@@ -2,6 +2,7 @@ import pytest
 import os
 import shutil
 import pkg_resources
+import gc
 from transformers import (
     AlbertConfig,
     AlbertForQuestionAnswering,
@@ -9,6 +10,9 @@ from transformers import (
     BertConfig,
     BertForQuestionAnswering,
     BertTokenizer,
+    DistilBertConfig,
+    DistilBertForQuestionAnswering,
+    DistilBertTokenizer,
     HfArgumentParser,
     TrainingArguments,
 )
@@ -22,6 +26,7 @@ from doggmentator.trainer.utils import load_and_cache_examples
 MODEL_CLASSES = {
     "albert": (AlbertConfig, AlbertForQuestionAnswering, AlbertTokenizer),
     "bert": (BertConfig, BertForQuestionAnswering, BertTokenizer),
+    "distilbert": (DistilBertConfig, DistilBertForQuestionAnswering, DistilBertTokenizer),
 }
 
 TRAIN_PATH = pkg_resources.resource_filename(
@@ -147,10 +152,6 @@ class TrainerTester:
 
         model_path = ('/'.join([self.training_args.output_dir, 'checkpoint-1']))
         assert os.path.exists(model_path)
-        model = self.model_cls.from_pretrained(
-            self.model_args.model_name_or_path,
-            cache_dir=self.model_args.cache_dir,
-        )
 
     def _eval_and_check_results(self):
         self._setup_env()
@@ -213,8 +214,8 @@ class TrainerTester:
 
 def test_alum_train():
         hparams = {
-            "model_type" : "bert",
-            "model_name_or_path" : "bert-base-uncased",
+            "model_type" : "distilbert",
+            "model_name_or_path" : "distilbert-base-uncased",
             "output_dir" : "./unittest_outputs",
             "cache_dir" : "./unittest_outputs",
             "data_dir" : "./unittest_outputs",
@@ -241,13 +242,14 @@ def test_alum_train():
         }
         trainer = TrainerTester(**hparams)
         trainer._train_and_check_results()
-
+        del trainer
+        gc.collect()
 
 '''
 def _test_alum_eval():
         hparams = {
-            "model_type" : "bert",
-            "model_name_or_path" : "bert-base-uncased",
+            "model_type" : "distilbert",
+            "model_name_or_path" : "distilbert-base-uncased",
             "output_dir" : "./unittest_outputs",
             "cache_dir" : "./unittest_outputs",
             "data_dir" : "./unittest_outputs",
@@ -279,8 +281,8 @@ def _test_alum_eval():
 
 def test_regular_train():
         hparams = {
-            "model_type" : "bert",
-            "model_name_or_path" : "bert-base-uncased",
+            "model_type" : "distilbert",
+            "model_name_or_path" : "distilbert-base-uncased",
             "output_dir" : "./unittest_outputs",
             "cache_dir" : "./unittest_outputs",
             "data_dir" : "./unittest_outputs",
@@ -307,12 +309,14 @@ def test_regular_train():
         }
         trainer = TrainerTester(**hparams)
         trainer._train_and_check_results()
+        del trainer
+        gc.collect()
 
 
 def test_regular_eval():
         hparams = {
-            "model_type" : "bert",
-            "model_name_or_path" : "bert-base-uncased",
+            "model_type" : "distilbert",
+            "model_name_or_path" : "distilbert-base-uncased",
             "output_dir" : "./unittest_outputs",
             "cache_dir" : "./unittest_outputs",
             "data_dir" : "./unittest_outputs",
