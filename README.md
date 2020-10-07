@@ -30,6 +30,10 @@ BERT-base (ALUM) | 82 | 88.99
 3. **Create a general framework** to automate and prototype different NLP models faster for research and production. This package is structured for extremely easy use and deployment. Using Prefect Flows, training, evaluation, and model selection can be executed in a single line of code, enabling faster iteration and easier itergration of research into production pipelines.
 
 # Features
+
+## Adversarial Training
+Our implementation is based on the ALUM model, proposed here [https://arxiv.org/pdf/2004.08994.pdf]. We have corrected a number of issues in the original formalism and improved algorithm robustness, added flexibility of scheduling across important hyperparameters as well as support for fp16.
+
 ## Augmenting Input Data
 The following perturbation methods are available to augment SQuAD-like data:
 - Synonym Replacement (SR) via 1) constrained word2vec [https://arxiv.org/pdf/1603.00892.pdf], and 2) MLM using BERT
@@ -51,10 +55,11 @@ The following perturbation methods are available to augment SQuAD-like data:
 ```diff
 - (How, 0.179), (many, 0.254), (species, 0.123), (of, 0.03), (plants, 0.136) (were, 0.039), (recorded, 0.067), (in, 0.012), (Egypt, 0.159)
 ```
-
-## Adversarial Training
-Our implementation is based on the ALUM model, proposed here [https://arxiv.org/pdf/2004.08994.pdf]. We have corrected a number of issues in the original formalism and improved algorithm robustness, added flexibility of scheduling across important hyperparameters as well as support for fp16.
-
+- Perturbation types can also be flexibly applied in combination with different frequencies for fine-grained control of natural noise profiles
+```diff
+- (original)  How *[many]* species *[of]* plants *[were]* recorded in Egypt?
++ (augmented) How *[mony]* species *[]* plants *[]* recorded in Egypt?
+```
 ## ML Flows
 Using the prefect library, Doggmenetator makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also support rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently.
 
