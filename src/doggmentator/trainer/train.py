@@ -69,7 +69,7 @@ class Trainer(HFTrainer):
         else:
             self.do_alum = False
 
-        if self.do_alum:
+        if self.do_alum and self.args.do_train:
             # Initialize delta for ALUM adv grad
             self._delta = None
             # Set ALUM optimizer
@@ -98,7 +98,7 @@ class Trainer(HFTrainer):
             self._step_idx = 0
             self._n_steps = len(self.get_train_dataloader())
             self._alpha = None
-        else:
+        elif self.args.do_train:
             # Use non-ALUM training step
             self._step = self._normal_step
 
