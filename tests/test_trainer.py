@@ -24,10 +24,10 @@ MODEL_CLASSES = {
     "bert": (BertConfig, BertForQuestionAnswering, BertTokenizer),
 }
 
-TRAIN_PATH = ''.join([pkg_resources.resource_filename(
+TRAIN_PATH = '/'.join([pkg_resources.resource_filename(
             'doggmentator', '').split('src')[0],
             'tests/support/train.json'])
-EVAL_PATH = ''.join([pkg_resources.resource_filename(
+EVAL_PATH = '/'.join([pkg_resources.resource_filename(
             'doggmentator', '').split('src')[0],
             'tests/support/dev.json'])
 
