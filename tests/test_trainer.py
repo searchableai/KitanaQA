@@ -26,10 +26,10 @@ MODEL_CLASSES = {
 
 TRAIN_PATH = '/'.join([pkg_resources.resource_filename(
             'doggmentator', '').split('src')[0],
-            'tests/support/train.json'])
+            'tests/support/test-train.json'])
 EVAL_PATH = '/'.join([pkg_resources.resource_filename(
             'doggmentator', '').split('src')[0],
-            'tests/support/dev.json'])
+            'tests/support/test-dev.json'])
 
 
 class dotdict(dict):
