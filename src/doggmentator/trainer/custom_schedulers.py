@@ -20,8 +20,8 @@ def get_custom_exp(
     Create a custom exponential scheduler
     """
     assert isinstance(max_steps, int) and max_steps >= 1
-    N0 = max_val
-    N1 = np.log(min_val/max_val)/(max_steps-1)
+    N0 = start_val
+    N1 = np.log(start_val/end_val)/(max_steps-1)
     update_fn = lambda x: N0 * np.exp(N1 * x)
     return custom_scheduler(max_steps, update_fn)
 
