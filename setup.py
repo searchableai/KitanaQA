@@ -16,6 +16,7 @@ setup(
         'numpy',
         'nltk',
         'stop-words',
+        'torch>=1.3.1',
         'transformers==3.1.0',
         'pyspark==2.4.0',
         'spark-nlp==2.5.2'
