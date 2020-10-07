@@ -211,10 +211,13 @@ class Trainer(HFTrainer):
                     }
                 ]
                 opt = AdamW(optimizer_params)
-                _, self._alum_optimizer = amp.initialize(
+                if self.args.fp16:
+                    _, self._alum_optimizer = amp.initialize(
                                                 self.model,
                                                 opt,
                                                 opt_level=self.args.fp16_opt_level)
+                else:
+                    self._alum_optimizer = opt
 
         # Predict logits and generate normal loss with normal inputs_embeds
         outputs = model(**inputs)
