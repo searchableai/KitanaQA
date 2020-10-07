@@ -202,7 +202,7 @@ def eval_task(args):
                 results[model_idx] = {
                                     'model_args': model_args,
                                     'training_args':training_args,
-                                    'eval':trainer.alum_evaluate(
+                                    'eval':trainer.adv_evaluate(
                                             checkpoint,
                                             model_args,
                                             tokenizer,

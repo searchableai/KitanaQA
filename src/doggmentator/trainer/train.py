@@ -42,23 +42,27 @@ def tensor_to_list(tensor):
     return tensor.detach().cpu().tolist()
 
 
-'''
-def _adv_alum_attack(X, eps, order = 'inf'):
-    if order == 2:
+def _alum_grad_project(X, eps, ord = 'inf'):
+    if ord == 2:
         dims = list(range(1, X.dim()))
         norms = torch.sqrt(torch.sum(X * X, dim=dims, keepdim=True))
         return torch.min(torch.ones(norms.shape), eps / norms) * X
-    else:
+    elif ord == 'inf':
         return torch.clamp(X, min = -eps, max = eps)
-'''
+    else:
+        msg = "Only ord = inf and ord = 2 have been implemented"
+        raise NotImplementedError(msg)
 
 
-def _adv_sgn_attack(delta, eps, eps_iter, order = 'inf'):
-    if order == 'inf':
+def _adv_sgn_attack(delta, eps, eps_iter, ord = 'inf'):
+    if ord == 'inf':
         grad_sign = delta.grad.data.sign()
         delta.data += eps * grad_sign
         delta.data = torch.clamp(delta.data, min = -eps, max = eps)
         return delta
+    else:
+        msg = "Only ord = inf has been implemented"
+        raise NotImplementedError(msg)
 
 
 class Trainer(HFTrainer):
@@ -274,7 +278,7 @@ class Trainer(HFTrainer):
             if (self._step_idx + 1) % self.args.gradient_accumulation_steps == 0:
                 g_adv = self._delta.grad.data.detach()
                 logger.debug('\n=== self._delta.data max {} - norms {}'.format(torch.max(self._delta.data), torch.norm(self._delta.data)))
-                self._delta.data = _adv_grad_project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
+                self._delta.data = _alum_grad_project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
 
                 del g_adv
 
@@ -323,7 +327,7 @@ class Trainer(HFTrainer):
         return self._step(model, batch)
 
 
-    def alum_evaluate(
+    def adv_evaluate(
             self,
             prefix: str,
             args,
@@ -386,7 +390,6 @@ class Trainer(HFTrainer):
 
                 # Calculate g_adv and update delta
                 g_adv = _delta.grad.data.detach()
-                #_delta.data = _adv_grad_project((_delta + args.eta * g_adv), args.eps, 'inf')
                 _delta = _adv_sgn_attack(_delta, args.eps, args.eta, 'inf')
                 logger.debug('===_delta norm {} - gadv norm {}'.format(torch.norm(_delta), torch.norm(g_adv)))
                 del g_adv
