@@ -27,6 +27,7 @@ logger = get_logger()
 MODEL_CLASSES = {
     "albert": (AlbertConfig, AlbertForQuestionAnswering, AlbertTokenizer),
     "bert": (BertConfig, BertForQuestionAnswering, BertTokenizer),
+    "distilbert": (DistilBertConfig, DistilBertForQuestionAnswering, DistilBertTokenizer),
 }
 
 

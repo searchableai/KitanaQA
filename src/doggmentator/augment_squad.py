@@ -7,15 +7,13 @@ import copy
 from torch.utils.data import DataLoader
 import math
 from collections import Counter
-from doggmentator.term_replacement import *
-import logging
-logger = logging.getLogger().setLevel('INFO')
 from datetime import datetime
+from doggmentator.term_replacement import *
+from doggmentator import get_logger
 
-data_file = pkg_resources.resource_filename(
-            'doggmentator', 'support/squad_bert_importance_scores.pkl')
-with open(data_file, 'rb') as f:
-    score_dict = pickle.load(f)
+
+logger = get_logger()
+
 
 def _from_checkpoint(
         fname: str='checkpoint.pkl') -> Dict:
@@ -55,7 +53,7 @@ def format_squad(
         if not all([x['answer_start'] is not None for x in example['answers']]):
             raise Exception('No answer_start found')
         if not example['question']:
-            print('No question: ', example['aug_type'])
+            logger.info('No question found: {}'.format(example['aug_type']))
             continue
         dataset[tle_id][ctx_id].append({
             'answers':example['answers'],
@@ -82,7 +80,7 @@ def format_squad(
     return formatted
             
 
-class MySQuADDataset(Dataset):
+class SQuADDataset(Dataset):
     def __init__(
                 self,
                 raw_examples: List,
@@ -97,10 +95,19 @@ class MySQuADDataset(Dataset):
                 p_misspelling: float=0.1,
                 save_freq: int=100,
                 from_checkpoint: bool=False,
-                out_prefix: str='dev',
+                out_prefix: str=None,
+                verbose: bool=False,
                 dataset: Dict = None):
-        """ Instantiate a MySQuADDataset instance"""
-        hparams = {
+        """ Instantiate a SQuADDataset instance"""
+
+        if is_training and not out_prefix:
+            self.out_prefix = 'train'
+        else:
+            self.out_prefix = 'dev'
+        self.is_training = is_training
+        self.verbose = verbose
+
+        self.hparams = {
             "num_replacements":num_replacements,
             "sample_ratio":sample_ratio,
             "p_replace":p_replace,
@@ -109,55 +116,75 @@ class MySQuADDataset(Dataset):
             "sampling_strategy":sampling_strategy,
             "sampling_k":sampling_k
         }
-        print('Running MySQuADDataset with hparams {}'.format(hparams))
-        # A list of tuples or tensors
-        aug_dataset = []
-        aug_seqs = []
-        examples = []
-        title_map = {}
-        context_map = {}
-        ctx_id = 0
-        new_squad_examples = copy.deepcopy(raw_examples)
-        for j,psg in enumerate(raw_examples['data']):
-            title = psg['title']
-            tle_id = j
-            title_map[tle_id] = title
-            new_squad_examples['data'][j]['title_id'] = str(tle_id)
-            for n,para in enumerate(psg['paragraphs']):
-                context = para['context']
-                context_map[ctx_id] = context
-                new_squad_examples['data'][j]['paragraphs'][n]['context_id'] = str(ctx_id)
-                for qa in para['qas']:
-                    examples.append({
-                        'qid':qa['id'],
-                        'ctx_id':ctx_id,
-                        'tle_id':tle_id,
-                        'answers':qa['answers'],
-                        'question':qa['question']
-                    })
-                ctx_id += 1
-        with open('train-squadv1.json', 'w') as f:
-            json.dump(new_squad_examples, f)
+        logger.info('Running SQuADDataset with hparams {}'.format(self.hparams))
 
-        aug_examples = copy.deepcopy(examples)
+        self.aug_dataset = []
+        self.dataset = []
+        self.examples = []
+        self.title_map = {}
+        self.context_map = {}
+
+        self._raw_examples = raw_examples
+        self._load_raw_examples()
 
         # Normalize probabilities of each augmentation
         probs = [p_dropword, p_replace, p_misspelling]
-        probs = [p / sum(probs) for p in probs]
-        augmentation_types = {
+        self.probs = [p / sum(probs) for p in probs]
+        self.augmentation_types = {
             'drop': DropTerms(),
             'synonym': ReplaceTerms(rep_type='synonym'),
             'misspelling': ReplaceTerms(rep_type='misspelling')
         }
-        num_examples = len(examples)
-        num_aug_examples = math.ceil(num_examples * sample_ratio)
-        print('Generating {} aug examples from {} orig examples'.format(num_aug_examples, num_examples))
-        orig_indices = list(range(num_examples))
+        num_examples = len(self.examples)
+        self.num_aug_examples = math.ceil(num_examples * sample_ratio)
+        logger.info('Generating {} aug examples from {} orig examples'.format(self.num_aug_examples, num_examples))
+        self.orig_indices = list(range(num_examples))
+
+
+    def _load_raw_examples(self):
+        """Load a SQuAD-like dataset and add annotations for augmentation"""
+        ctx_id = 0
+        new_squad_examples = copy.deepcopy(self._raw_examples)
+        for j,psg in enumerate(self._raw_examples['data']):
+            title = psg['title']
+            tle_id = j
+            self.title_map[tle_id] = title
+            new_squad_examples['data'][j]['title_id'] = str(tle_id)
+            for n,para in enumerate(psg['paragraphs']):
+                context = para['context']
+                self.context_map[ctx_id] = context
+                new_squad_examples['data'][j]['paragraphs'][n]['context_id'] = str(ctx_id)
+                for qa in para['qas']:
+                    if self.is_training:
+                        self.examples.append({
+                            'qid':qa['id'],
+                            'ctx_id':ctx_id,
+                            'tle_id':tle_id,
+                            'answers':qa['answers'],
+                            'question':qa['question'],
+                            'is_impossible':qa.get('is_impossible', False),
+                        })
+                    else:
+                        self.examples.append({
+                            'qid':qa['id'],
+                            'ctx_id':ctx_id,
+                            'tle_id':tle_id,
+                            'answers':qa['answers'],
+                            'question':qa['question']
+                        })
+                ctx_id += 1
+
+        if self.verbose:
+            with open('annotated-train-squadv1.json', 'w') as f:
+                json.dump(new_squad_examples, f)
+
+    def generate(self):
+        """ Generate augmented examples based on raw SQuAD-like dataset"""
+        aug_examples = copy.deepcopy(self.examples)
 
         # Randomly sample indices of data in original dataset with replacement
-        aug_indices = np.random.choice(orig_indices, size=num_aug_examples)
+        aug_indices = np.random.choice(self.orig_indices, size=self.num_aug_examples)
         aug_freqs = Counter(aug_indices)
-        #print(examples, num_examples, num_aug_examples, orig_indices, aug_indices, aug_indices)
 
         ct = 0
         if from_checkpoint:
@@ -165,43 +192,46 @@ class MySQuADDataset(Dataset):
             if not checkpoint:
                 raise RuntimeError('Failed to load checkpoint file')
             aug_freqs = checkpoint['aug_freqs']
-            aug_dataset = checkpoint['aug_dataset']
-            hparams = checkpoint['hparams']
+            self.aug_dataset = checkpoint['aug_dataset']
+            self.hparams = checkpoint['hparams']
             ct = checkpoint['ct']
 
         # Reamining number of each agumentation types after exhausting previous example's variations
         remaining_count = {}
-        for aug_type in augmentation_types.keys():
+        for aug_type in self.augmentation_types.keys():
             remaining_count[aug_type] = 0
 
+        aug_seqs = []
         for aug_idx, count in aug_freqs.items():
-            if len(aug_dataset) > num_aug_examples:
+            if len(self.aug_dataset) > self.num_aug_examples:
                 continue
             # Get frequency of each augmentation type for current example with replacement
-            aug_type_sample = np.random.choice(list(augmentation_types.keys()), size=count, p=probs)
+            aug_type_sample = np.random.choice(list(self.augmentation_types.keys()), size=count, p=self.probs)
             aug_type_freq = Counter(aug_type_sample)
             for aug_type in aug_type_freq.keys():
                 aug_type_freq[aug_type] += remaining_count[aug_type]
 
             # Get raw data from original dataset and get corresponding importance score
-            raw_data = examples[aug_idx]
+            raw_data = self.examples[aug_idx]
             question = raw_data['question']
             answers = raw_data['answers']
             qid = raw_data['qid']
             ctx_id = raw_data['ctx_id']
             tle_id = raw_data['tle_id']
-            if importance_score_dict and qid in importance_score_dict:
+            # Used for SQuAD v2.0; not present in v1.1
+            is_impossible = raw_data.get('is_impossible', False)
+                
+            if importance_score_dict and qid in self.importance_score_dict:
                 importance_score = importance_score_dict[qid]
             else:
                 importance_score = None
 
             if ct % save_freq == 0:
-                print('ct: ', ct)
-                print('Generated {} examples'.format(len(aug_dataset)))
+                logger.info('Generated {} examples'.format(len(self.aug_dataset)))
                 checkpoint = {
                     'aug_freqs':aug_freqs,
-                    'aug_dataset':aug_dataset,
-                    'hparams':hparams,
+                    'aug_dataset':self.aug_dataset,
+                    'hparams':self.hparams,
                     'ct':ct
                 }
                 with open('checkpoint.pkl', 'wb') as f:
@@ -211,26 +241,26 @@ class MySQuADDataset(Dataset):
             for aug_type, aug_times in aug_type_freq.items():
                 # Randomly select a number of terms to replace
                 # up to the max `num_replacements`
-                reps = np.random.choice(np.arange(num_replacements), 1, replace=False)[0]
+                reps = np.random.choice(np.arange(self.num_replacements), 1, replace=False)[0]
 
                 if aug_type == 'drop':
                     # Generate a dropword perturbation
-                    aug_questions = augmentation_types[aug_type].drop_terms(
+                    aug_questions = self.augmentation_types[aug_type].drop_terms(
                                                             question,
                                                             num_terms=reps,
                                                             num_output_sents=aug_times)
                 else:
                     # Generate synonym and misspelling perturbations
-                    aug_questions = augmentation_types[aug_type].replace_terms(
+                    aug_questions = self.augmentation_types[aug_type].replace_terms(
                                                             sentence = question,
                                                             importance_scores = importance_score,
                                                             num_replacements = reps,
                                                             num_output_sents = aug_times,
-                                                            sampling_strategy = sampling_strategy,
-                                                            sampling_k = sampling_k)
+                                                            sampling_strategy = self.sampling_strategy,
+                                                            sampling_k = self.sampling_k)
                     # Add an additional drop perturbation to each generated question
                     aug_questions += [
-                                        augmentation_types['drop'].drop_terms(
+                                        self.augmentation_types['drop'].drop_terms(
                                                         x,
                                                         num_terms=reps,
                                                         num_output_sents=1)
@@ -238,8 +268,8 @@ class MySQuADDataset(Dataset):
                                     ]
                                                         
                 for aug_question in aug_questions:
-                    if is_training:
-                        aug_dataset.append({
+                    if self.is_training:
+                        self.aug_dataset.append({
                                                 'id':qid,
                                                 'ctx_id':ctx_id,
                                                 'tle_id':tle_id,
@@ -250,7 +280,7 @@ class MySQuADDataset(Dataset):
                                         })
                     else:
                         aug_seqs.append({'orig': question, 'aug': aug_question, 'type':aug_type})
-                        aug_dataset.append({
+                        self.aug_dataset.append({
                                                 'id':qid,
                                                 'ctx_id':ctx_id,
                                                 'tle_id':tle_id,
@@ -263,14 +293,16 @@ class MySQuADDataset(Dataset):
 
             ct += 1
 
-        formatted_aug_dataset = format_squad(aug_dataset, title_map, context_map)
-        print('Saving data')
-        with open(out_prefix+'_aug_seqs.json', 'w') as f:
-            json.dump(aug_seqs, f)
+        formatted_aug_dataset = format_squad(self.aug_dataset, self.title_map, self.context_map)
+        logger.info('Saving data')
+        if self.verbose:
+            # Log the original question alongside augmented with type annotation
+            with open(out_prefix+'_aug_seqs.json', 'w') as f:
+                json.dump(aug_seqs, f)
         with open(out_prefix+'_aug_squad_v1.json', 'w') as f:
             json.dump(formatted_aug_dataset, f)
         with open('hparams.json', 'w') as f:
-            json.dump(hparams, f)
+            json.dump(self.hparams, f)
 
         self.dataset = aug_dataset
 
