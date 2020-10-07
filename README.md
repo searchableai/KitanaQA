@@ -1,5 +1,5 @@
 <h1 align="center">Doggmentator</h1>
-<p align="center">Adversarial Training and Data Augmentation for NLP Models</p>
+<p align="center">Adversarial Training and Data Augmentation for Question-Answer Models</p>
 
 <p align="center">
   <a href="">[Doggmentator Documentation on ReadTheDocs]</a> 
@@ -29,21 +29,25 @@ BERT-base (ALUM) | 82 | 88.99
 2. **Augment your dataset** to increase model generalization and robustness using token-level perturbations. While Adversarial Training provides some measure of robustness against small perturbations, Augmentation can accomodate a wide range of naturally-occuring noise in user input. We provide tools to augment existing SQuAD-like datasets by perturbing the examples along a number of different dimensions, including synonym replacement, misspelling, and deletion.
 3. **Create a general framework** to automate and prototype different NLP models faster for research and production. This package is structured for extremely easy use and deployment. Using Prefect Flows, training, evaluation, and model selection can be executed in a single line of code, enabling faster iteration and easier itergration of research into production pipelines.
 
-### Features
-##Augmenting Input Data
+## Features
+# Augmenting Input Data
 The following perturbation methods are available to augment SQuAD-like data:
 - Synonym Replacement (SR) via 1) constrained word2vec [https://arxiv.org/pdf/1603.00892.pdf], and 2) MLM using BERT
+<span style="background-color: #00FF00">How many species of plants were [recorded] in Egypt?</span> ... <span style="background-color: #0000FF">How many species of plants were [registered] in Egypt?</span>
 - Random Deletion (RD) using entity-aware term selection
+<span style="background-color: #00FF00">How many species of plants [were] recorded in Egypt?</span> ... <span style="background-color: #0000FF">How many species of plants recorded in Egypt?</span>
 - Random Misspelling (RM) using open-source common misspellings datasets
+<span style="background-color: #00FF00">How [many] species of plants were recorded in Egypt?</span> ... <span style="background-color: #0000FF">How [mony] species of plants recorded in Egypt?</span>
 - Each perturbation also supports custom term importance sampling
+<span style="background-color: #00FF00">(How, 0.179), (many, 0.254), (species, 0.123), (of, 0.03), (plants, 0.136) (were, 0.039), (recorded, 0.067), (in, 0.012), (Egypt, 0.159)</span>
 
-## Adversarial Training
+# Adversarial Training
 Our implementation is based on the ALUM model, proposed here [https://arxiv.org/pdf/2004.08994.pdf]. We have corrected a number of issues in the original formalism and improved algorithm robustness, added flexibility of scheduling across important hyperparameters as well as support for fp16.
 
-## ML Flows
+# ML Flows
 Using the prefect library, Doggmenetator makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also support rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently.
 
-### Installation
+## Installation
 - Our entity-aware data augmentations make use of the John Snow Labs spark-nlp library, which requires pyspark. Ensure Java v8 is set by default for pyspark compatibility:
 - ```sudo apt install openjdk-8-jdk```
 - ```sudo update-alternatives --config java```
@@ -55,8 +59,12 @@ Unzip word vec files in /support directory
 - Install the package
 ```python setup.py install```
 
-### Examples
-- TBD
+## Simple Example
+```python run_pipeline.py --args=args.json
+
+## Examples
+- run_pipeline (Regular, ALUM, train + evaluate)
+- augment_squad
 
 ## Models Supported
 We make use of the following models and their respective tokenizers and configurations provided by HuggingFace Inc.
