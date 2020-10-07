@@ -44,6 +44,7 @@ class BaseGenerator:
                 )
             return ''
         sent = re.sub(r'[^A-Za-z0-9.\' ]', '', sent).lower()
+        sent = ' '.join(sent.split())
         return sent
 
     def _cosine_similarity(
@@ -56,6 +57,9 @@ class BaseGenerator:
 
 def _wordnet_syns(term: str, num_syns: int=10) -> List:
     """Find synonyms using WordNet"""
+    from warnings import warn
+    warn("WordNet synonym generation is deprecated. Please use one of the other methods available.")
+
     synonyms = []
     for syn in wordnet.synsets(term):
         for lemma in syn.lemmas() :
