@@ -67,7 +67,14 @@ def _wordnet_syns(term: str, num_syns: int=10) -> List:
 
 
 class MisspReplace(BaseGenerator):
-    """ Replace commonly misspelled terms """
+    
+    """ A class to replace commonly misspelled terms
+    ...
+    Methods
+    ----------
+    generate(term, num_missp)
+      Generate misspellings for an input term 
+    """
     def __init__(self):
         super().__init__()
         self._missp = None
@@ -91,11 +98,34 @@ class MisspReplace(BaseGenerator):
             self,
             term: str,
             num_missp: int=10) -> List:
-        """ Generate misspellings for an input term """
+        
+        """Generate a certain number of misspellings for the input term. The misspelling 
+
+        Parameters
+        ----------
+        term : str
+            The input term for which we are looking for misspellings.
+        num_missp : Optional(int)
+            The number of misspellings for the input term. The number of misspelling should be greater than 1. The default value is 10.
+
+        Returns
+        -------
+        [str]
+            Returns a list of misspelling if there is any misspelling for the input term. Otherwise an empty list
+            
+        Example
+        -------
+        >>> from generators import MisspReplace
+        >>> mr = MisspReplace()
+        >>> term = "worried"
+        >>> num_missp = 5
+        >>> mr.generate(term, num_missp)
+        ['woried', 'worred']
+        """
 
         # Num misspellings must be gte 1
         num_missp = max(num_missp, 1)
-
+        import pdb; pdb.set_trace()
         if term in self._missp:
             return self._missp[term][:num_missp]
         else:
