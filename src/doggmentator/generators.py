@@ -99,7 +99,7 @@ class MisspReplace(BaseGenerator):
             term: str,
             num_missp: int=10) -> List:
         
-        """Generate a certain number of misspellings for the input term. The misspelling 
+        """Generate a certain number of misspellings for the input term.
 
         Parameters
         ----------
@@ -133,7 +133,14 @@ class MisspReplace(BaseGenerator):
 
 
 class SynonymReplace(BaseGenerator):
-    """ Find synonyms using word vectors """
+    
+    """ A class to generate synonyms for the input term
+    ...
+    Methods
+    ----------
+    generate(term, num_syns, similarity_thre)
+      Generate synonyms for an input term 
+    """
     def __init__(self):
         super().__init__()
         self._vecs = None
@@ -166,7 +173,33 @@ class SynonymReplace(BaseGenerator):
             term: str,
             num_syns: int=10,
             similarity_thre: float=0.7) -> List:
-        """ Generate synonyms for an input term """
+        
+        """Generate a certain number of synonyms for the input term. Based on the 
+
+        Parameters
+        ----------
+        term : str
+            The input term for which we are looking for synonyms.
+        num_syns : Optional(int)
+            The number of synonyms for the input term. The number of synonyms should be greater than 1. The default value is 10.
+        similarity_thre : Optional(float)
+            The similarity threshold. The function returns the synonyms with higher similarity than the threshold.
+
+        Returns
+        -------
+        [str]
+            Returns a list of synonyms for the input term.
+
+        Example
+        -------
+        >>> from generators import SynonymReplace
+        >>> sr = SynonymReplace()
+        >>> term = "worried"
+        >>> num_syns = 3
+        >>> similarity_thre = 0.7
+        >>> sr.generate(term, num_syns, similarity_thre)
+        ['apprehensive', 'preoccupied', 'worry']
+        """
 
         # Number of synonyms must be gte 1
         num_syns = max(num_syns, 1)
