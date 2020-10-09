@@ -15,10 +15,10 @@
 
 ## About
 
-Doggmentator is a Python framework for adversarial training and data augmentation for fine-tuning NLP language models for question-answering 
+Doggmentator is an adversarial training and data augmentation framework for fine-tuning NLP language models on question-answering datasets
 
 ### *Why Doggmentator?*
-While NLP models have make incredible progress on curated question-answer datasets in recent years, they are still brittle and unpredictable in production environments, making productization and enterprise adoption problematic. Doggmentator provides an ecosystem of resources to "harden" Transformer-based question-answer models against many types of both natural and synthetic noise. The major features are:
+While NLP models have made incredible progress on curated question-answer datasets in recent years, they are still brittle and unpredictable in production environments, making productization and enterprise adoption problematic. Doggmentator provides resources to "robustify" Transformer-based question-answer models against many types of natural and synthetic noise. The major features are:
 1. **Adversarial Training** can increase both robustness and performance of fine-tuned Transformer QA models. Here, we implement an embedding-space perturbation method to simulate synthetic noise in model inputs. Comparisons to baselines like BERT-base show remarkable performance gains:
 
 Model | em | f1
@@ -26,42 +26,43 @@ Model | em | f1
 BERT-base | 80 | 88.5
 BERT-base (ALUM) | 82 | 88.99
 
-2. **Augment your dataset** to increase model generalization and robustness using token-level perturbations. While Adversarial Training provides some measure of robustness against small perturbations, Augmentation can accomodate a wide range of naturally-occuring noise in user input. We provide tools to augment existing SQuAD-like datasets by perturbing the examples along a number of different dimensions, including synonym replacement, misspelling, and deletion.
-3. **Create a general framework** to automate and prototype different NLP models faster for research and production. This package is structured for extremely easy use and deployment. Using Prefect Flows, training, evaluation, and model selection can be executed in a single line of code, enabling faster iteration and easier itergration of research into production pipelines.
+2. **Augment your dataset** to increase model generalizability and robustness using token-level perturbations. While Adversarial Training provides some measure of robustness against bounded perturbations, Augmentation can accomodate a wide range of naturally-occuring noise in user input. We provide tools to augment existing SQuAD-like datasets by perturbing the examples along a number of different dimensions, including synonym replacement, misspelling, and deletion.
+
+3. **Workflow Automation** to prototype robust NLP models faster for research and production. This package is structured for extremely easy use and deployment. Using Prefect Flows, training, evaluation, and model selection can be executed in a single line of code, enabling faster iteration and easier itergration of research into production pipelines.
 
 # Features
 
 ## Adversarial Training
-Our implementation is based on the ALUM model, proposed here [https://arxiv.org/pdf/2004.08994.pdf]. We have corrected a number of issues in the original formalism and improved algorithm robustness, added flexibility of scheduling across important hyperparameters as well as support for fp16.
+Our implementation is based on the ALUM model, proposed here [https://arxiv.org/pdf/2004.08994.pdf]. We have corrected a number of issues in the original formalism and improved algorithm robustness, adding flexible adversarial hyperparameter scheduling, as well as support for fp16.
 
 ## Augmenting Input Data
 The following perturbation methods are available to augment SQuAD-like data:
 - Synonym Replacement (SR) via 1) constrained word2vec [https://arxiv.org/pdf/1603.00892.pdf], and 2) MLM using BERT
 ```diff
-- (original)  How many species of plants were **[recorded]** in Egypt?
-+ (augmented) How many species of plants were **[registered]** in Egypt?
+- (original)  How many species of plants were *[recorded]* in Egypt?
++ (augmented) How many species of plants were *[registered]* in Egypt?
 ```
 - Random Deletion (RD) using entity-aware term selection
 ```diff
-- (original)  How many species of plants **[were]** recorded in Egypt?
-+ (augmented) How many species of plants **[]** registered in Egypt?
+- (original)  How many species of plants *[were]* recorded in Egypt?
++ (augmented) How many species of plants *[]* registered in Egypt?
 ```
 - Random Misspelling (RM) using open-source common misspellings datasets
 ```diff
-- (original)  How **[many]** species of plants were recorded in Egypt?
-+ (augmented) How **[mony]** species of plants were registered in Egypt?
+- (original)  How *[many]* species of plants were recorded in Egypt?
++ (augmented) How *[mony]* species of plants were registered in Egypt?
 ```
-- Each perturbation also supports custom term importance sampling, e.g. as generated using a MLM
+Each perturbation type also supports custom term importance sampling, e.g. as generated using a MLM
 ```diff
 - (How, 0.179), (many, 0.254), (species, 0.123), (of, 0.03), (plants, 0.136) (were, 0.039), (recorded, 0.067), (in, 0.012), (Egypt, 0.159)
 ```
-- Perturbation types can also be flexibly applied in combination with different frequencies for fine-grained control of natural noise profiles
+Perturbation types can also be flexibly applied in combination with different frequencies for fine-grained control of natural noise profiles
 ```diff
 - (original)  How *[many]* species *[of]* plants *[were]* recorded in Egypt?
 + (augmented) How *[mony]* species *[]* plants *[]* recorded in Egypt?
 ```
 ## ML Flows
-Using the prefect library, Doggmenetator makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also support rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently.
+Using the Prefect library, Doggmenetator makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also supports rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently. You can even get training results reported directly in Slack!!!
 
 # Installation
 - Our entity-aware data augmentations make use of the John Snow Labs spark-nlp library, which requires pyspark. Ensure Java v8 is set by default for pyspark compatibility:
