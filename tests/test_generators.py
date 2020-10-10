@@ -1,7 +1,7 @@
 import pytest
 import unittest
 from doggmentator.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms
-from doggmentator.generators import BaseGenerator, MisspReplace, SynonymReplace, _wordnet_syns
+from doggmentator.generators import BaseGenerator, MisspReplace, SynonymReplace, MLMSynonymReplace
 
 class TestGenerators(unittest.TestCase):
     def test_valid_input(self):
@@ -23,14 +23,22 @@ class TestGenerators(unittest.TestCase):
 
     def test_misspelling_generator(self):
         missp_gen = MisspReplace()
-        misspellings = missp_gen.generate('apple', 5)
+        misspellings = missp_gen.generate('apple', None, None, 5)
         assert isinstance(misspellings, list)
         assert all([isinstance(x, str) for x in misspellings])
         assert len(misspellings) == 5
 
     def test_w2v_synonym_generator(self):
         syn_gen = SynonymReplace()
-        synonyms = syn_gen.generate('apple', 3, 0.75)
+        synonyms = syn_gen.generate('apple', None, None, 3, 0.75)
+        assert isinstance(synonyms, list)
+        assert all([isinstance(x, str) for x in synonyms])
+        assert len(synonyms) == 3
+
+    def test_mlm_synonym_generator(self):
+        syn_gen = MLMSynonymReplace()
+        sent = 'I was born in a small town'
+        synonyms = syn_gen.generate('small', sent.split(), 5, 3)
         assert isinstance(synonyms, list)
         assert all([isinstance(x, str) for x in synonyms])
         assert len(synonyms) == 3
