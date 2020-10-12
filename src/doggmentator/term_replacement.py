@@ -17,7 +17,7 @@ from sparknlp.annotator import *
 from sparknlp.common import RegexRule
 from sparknlp.base import *
 from doggmentator.nlp_utils.firstnames import firstnames
-from doggmentator.generators import SynonymReplace, MisspReplace
+from doggmentator.generators import SynonymReplace, MisspReplace, MLMSynonymReplace
 from doggmentator import get_logger
 
 nltk.download('stopwords')
@@ -220,7 +220,8 @@ class ReplaceTerms():
             rep_type: str='synonym',
             use_ner: bool=True):
         """Instantiate a ReplaceTerms object"""
-        if rep_type not in ['synonym', 'misspelling']:
+        self.use_ner = use_ner
+        if rep_type not in ['synonym', 'misspelling', 'mlmsynonym']:
             logger.error(
                 '{}:ReplaceTerms __init__ invalid rep_type'.format(
                     __file__.split('/')[-1]
@@ -245,20 +246,25 @@ class ReplaceTerms():
     def _get_entities(self, sentence: str) -> Dict:
         """ Tokenize and annotate sentence """
 
-        # Start Spark session with Spark NLP
-        allowed_tags = ['PER','LOC','ORG','MISC']
+        if self.use_ner:
+            # Use spark-nlp tokenizer for entity-aware mask
+            allowed_tags = ['PER','LOC','ORG','MISC']
 
-        # Annotate your testing dataset
-        result = self._ner_pipeline.annotate(sentence)
-        toks = result['token']
-        mask = [
-            1 if (
-                any([y in x for y in allowed_tags])
-                or not toks[i].isalnum()
-            )
-            else 0
-            for i,x in enumerate(result['ner'])
-        ]
+            # Annotate your testing dataset
+            result = self._ner_pipeline.annotate(sentence)
+            toks = result['token']
+            mask = [
+                1 if (
+                    any([y in x for y in allowed_tags])
+                    or not toks[i].isalnum()
+                )
+                else 0
+                for i,x in enumerate(result['ner'])
+            ]
+        else:
+            # Use simple NLTK tokenizer
+            toks = nltk.word_tokenize(sentence)
+            mask = [0]*len(toks)
         return mask, toks
 
 
@@ -273,8 +279,6 @@ class ReplaceTerms():
                         __file__.split('/')[-1]
                     )
                 )
-                return None
-            return     
         elif name == 'misspelling':
             try:
                 _missp = MisspReplace()
@@ -285,7 +289,17 @@ class ReplaceTerms():
                         __file__.split('/')[-1]
                     )
                 )
-                return None
+        elif name == 'mlmsynonym':
+            try:
+                _syn = MLMSynonymReplace()
+                return _syn
+            except Exception as e:
+                logger.error(
+                    '{}:replace_terms: unable to load word vectors'.format(
+                        __file__.split('/')[-1]
+                    )
+                )
+        return
 
     def replace_terms(
             self,
@@ -347,9 +361,11 @@ class ReplaceTerms():
         ]
 
         # Create List of Lists of term variants
+        generated = {x[0]:None for x in term_score_index}
         generated = {
-            x[0]:self._generator.generate(x[0])
+            x[0]:self._generator.generate(x[0], tokens, i)
             for i,x in enumerate(term_score_index)
+            if not x[2]
         }
 
         term_variants = {

@@ -5,17 +5,19 @@ import random
 import itertools
 import re
 import json
+import torch
+import nltk
 import numpy as np
 from typing import List, Dict, Tuple
 from numpy import dot
 from numpy.linalg import norm
 from stop_words import get_stop_words
-import nltk
 from nltk.corpus import stopwords, wordnet
 from sparknlp.pretrained import PretrainedPipeline
 from sparknlp.annotator import *
 from sparknlp.common import RegexRule
 from sparknlp.base import *
+from transformers import AutoTokenizer, BertForMaskedLM
 from doggmentator.nlp_utils.firstnames import firstnames
 from doggmentator import get_logger
 
@@ -44,6 +46,7 @@ class BaseGenerator:
                 )
             return ''
         sent = re.sub(r'[^A-Za-z0-9.\' ]', '', sent).lower()
+        sent = ' '.join(sent.split())
         return sent
 
     def _cosine_similarity(
@@ -56,6 +59,9 @@ class BaseGenerator:
 
 def _wordnet_syns(term: str, num_syns: int=10) -> List:
     """Find synonyms using WordNet"""
+    from warnings import warn
+    warn("WordNet synonym generation is deprecated. Please use one of the other methods available.")
+
     synonyms = []
     for syn in wordnet.synsets(term):
         for lemma in syn.lemmas() :
@@ -97,6 +103,8 @@ class MisspReplace(BaseGenerator):
     def generate(
             self,
             term: str,
+            toks: List=None,
+            token_idx: int=None,
             num_missp: int=10) -> List:
         
         """Generate a certain number of misspellings for the input term.
@@ -130,6 +138,40 @@ class MisspReplace(BaseGenerator):
             return self._missp[term][:num_missp]
         else:
             return []
+
+
+class MLMSynonymReplace(BaseGenerator):
+    """ Find synonym using MLM """
+    def __init__(self):
+        super().__init__()
+        self.model_path = 'bert-base-uncased'
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.model_path, use_fast=True)
+        self.model = BertForMaskedLM.from_pretrained(
+            self.model_path)
+
+    def generate(
+            self,
+            term: str,
+            toks: str,
+            token_idx: int,
+            num_syns: int=10,
+        ):
+        # Need to account for possible duplicate term in results
+        num_syns += 1
+        toks[token_idx] = self.tokenizer.mask_token
+        sentence = ' '.join(toks)
+        encoded_sent = self.tokenizer.encode(sentence, return_tensors="pt")
+        mask_token_idx = torch.where(encoded_sent == self.tokenizer.mask_token_id)[1]
+        token_logits = self.model(encoded_sent)[0]
+        mask_token_logits = token_logits[0, mask_token_idx, :]
+
+        probs = torch.nn.functional.softmax(mask_token_logits, dim=1)
+        topk = torch.topk(probs, num_syns)
+        top_n_probs, top_n_tokens = topk.values.detach().numpy()[0], topk.indices.detach().numpy()[0]
+        results = [self.tokenizer.decode([top_n_tokens[n]]) for n in range(min(num_syns,len(top_n_probs)))]
+        results = [x for x in results if x != term]
+        return results
 
 
 class SynonymReplace(BaseGenerator):
@@ -171,6 +213,8 @@ class SynonymReplace(BaseGenerator):
     def generate(
             self,
             term: str,
+            toks: List=None,
+            token_idx: int=None,
             num_syns: int=10,
             similarity_thre: float=0.7) -> List:
         

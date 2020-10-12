@@ -21,20 +21,33 @@ from transformers import (
 from doggmentator.trainer.arguments import ModelArguments
 from doggmentator.trainer.utils import set_seed, load_and_cache_examples, is_apex_available, post_to_slack, build_flow
 
-logger = logging.getLogger(__name__)
+from doggmentator import get_logger
+logger = get_logger()
 
 MODEL_CLASSES = {
     "albert": (AlbertConfig, AlbertForQuestionAnswering, AlbertTokenizer),
     "bert": (BertConfig, BertForQuestionAnswering, BertTokenizer),
+    "distilbert": (DistilBertConfig, DistilBertForQuestionAnswering, DistilBertTokenizer),
 }
 
 
 if __name__ == "__main__":
+    import argparse
+
+    # Get path to config file
+    clparser = argparse.ArgumentParser(description='Commandline args')
+    clparser.add_argument('--config_path', type=str, nargs=1, default=None)
+    clargs = clparser.parse_args()
+    if clargs.config_path:
+        config_path = clargs.config_path[0]
+    else:
+        config_path = '/'.join([os.getcwd(),'args.json'])
+    if not os.path.exists(config_path):
+        raise Exception('Could not find config_path. Check to see if your json file is located at that path.')
 
     # Initialize args
     parser = HfArgumentParser(dataclass_types=[ModelArguments, TrainingArguments])
-    args_file = "/home/ubuntu/searchable/Doggmentator/src/doggmentator/trainer/args.json"
-    model_args, training_args = parser.parse_json_file(args_file)
+    model_args, training_args = parser.parse_json_file(config_path)
 
     if model_args.model_type not in list(MODEL_CLASSES.keys()):
         raise NotImplementedError("Model type should be 'bert', 'albert'")
@@ -92,7 +105,7 @@ if __name__ == "__main__":
     # Load aug dataset
     if training_args.do_train and model_args.do_aug:
         aug_dataset = load_and_cache_examples(model_args, tokenizer, use_aug_path=True)
-        logger.info('Concatenete augmented examples to original examples. Train length = {} - Aug length = {}'.format(len(train_dataset), len(aug_dataset)))
+        logger.info('Concatenate augmented examples to original examples. Train length = {}, Aug length = {}'.format(len(train_dataset), len(aug_dataset)))
         train_dataset += aug_dataset
 
     f = build_flow(

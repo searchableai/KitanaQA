@@ -3,8 +3,10 @@ import os
 import logging
 import timeit
 import itertools
+import numpy as np
 from tqdm import tqdm
 from typing import Optional
+from operator import itemgetter
 
 from torch import nn
 from torch.utils.data import SequentialSampler, DataLoader
@@ -16,14 +18,12 @@ from typing import List, Dict, Any
 from transformers import Trainer as HFTrainer
 from transformers import PreTrainedModel, AdamW
 from transformers.file_utils import is_apex_available
-
-from transformers.data.metrics.squad_metrics import (
-    compute_predictions_log_probs,
-    compute_predictions_logits,
-    squad_evaluate
-)
-
 from transformers.data.processors.squad import SquadResult
+from transformers.data.metrics.squad_metrics import squad_evaluate
+
+from doggmentator.trainer.squad_metrics import (
+    compute_predictions_logits,
+)
 
 from doggmentator.trainer.custom_schedulers import get_custom_exp, get_custom_linear
 from doggmentator import get_logger
@@ -42,13 +42,27 @@ def tensor_to_list(tensor):
     return tensor.detach().cpu().tolist()
 
 
-def project(X, eps, order = 'inf'):
-    if order == 2:
+def _alum_grad_project(X, eps, ord = 'inf'):
+    if ord == 2:
         dims = list(range(1, X.dim()))
         norms = torch.sqrt(torch.sum(X * X, dim=dims, keepdim=True))
         return torch.min(torch.ones(norms.shape), eps / norms) * X
-    else:
+    elif ord == 'inf':
         return torch.clamp(X, min = -eps, max = eps)
+    else:
+        msg = "Only ord = inf and ord = 2 have been implemented"
+        raise NotImplementedError(msg)
+
+
+def _adv_sgn_attack(delta, eps, eps_iter, ord = 'inf'):
+    if ord == 'inf':
+        grad_sign = delta.grad.data.sign()
+        delta.data += eps * grad_sign
+        delta.data = torch.clamp(delta.data, min = -eps, max = eps)
+        return delta
+    else:
+        msg = "Only ord = inf has been implemented"
+        raise NotImplementedError(msg)
 
 
 class Trainer(HFTrainer):
@@ -92,22 +106,27 @@ class Trainer(HFTrainer):
 
         # Need to get do_alum from model_args 
         self.params = model_args
+
         if self.params and self.params.do_alum:
             self.do_alum = True
         else:
             self.do_alum = False
 
-        if self.do_alum:
+        if self.do_alum and self.params.model_type not in ['bert','distilbert','albert']:
+            msg = 'Only bert, albert, distilbert models are support in ALUM training'
+            raise NotImplementedError(msg)
+
+        if self.do_alum and self.args.do_train:
             # Initialize delta for ALUM adv grad
             self._delta = None
             # Set ALUM optimizer
             self._alum_optimizer = None
             # Set ALUM scheduler
-            if self.params.alpha_schedule == 'expdecay' and self.params.alpha_final:
+            if self.params.alpha_schedule == 'exp' and self.params.alpha_final:
                 self._alpha_scheduler = get_custom_exp(
                                 max_steps = self.args.num_train_epochs,
-                                max_val = self.params.alpha,
-                                min_val = self.params.alpha_final
+                                start_val = self.params.alpha,
+                                end_val = self.params.alpha_final
                             )
             elif self.params.alpha_schedule == 'linear' and self.params.alpha_final:
                 self._alpha_scheduler = get_custom_linear(
@@ -119,14 +138,17 @@ class Trainer(HFTrainer):
                 self._alpha_scheduler = itertools.repeat(self.params.alpha, self.args.num_train_epochs)
 
             # Set static embedding layer
-            self._embed_layer = self.model.bert.get_input_embeddings()
+            if self.params.model_type == 'bert':
+                self._embed_layer = self.model.bert.get_input_embeddings()
+            elif self.params.model_type == 'distilbert':
+                self._embed_layer = self.model.distilbert.get_input_embeddings()
             # ALUM step template
             self._step = self._alum_step
             # Tracking training steps for ALUM grad accumulation
             self._step_idx = 0
             self._n_steps = len(self.get_train_dataloader())
             self._alpha = None
-        else:
+        elif self.args.do_train:
             # Use non-ALUM training step
             self._step = self._normal_step
 
@@ -145,6 +167,8 @@ class Trainer(HFTrainer):
             "start_positions": batch[3],
             "end_positions": batch[4],
         }
+        if self.params.model_type in ["xlm", "roberta", "distilbert"]:
+            del inputs["token_type_ids"]
 
         outputs = model(**inputs)
         # model outputs are always tuple in transformers (see doc)
@@ -225,6 +249,8 @@ class Trainer(HFTrainer):
             "end_positions": batch[4],
             "inputs_embeds": input_embedding,
         }
+        if self.params.model_type in ["xlm", "roberta", "distilbert"]:
+            del inputs["token_type_ids"]
 
         # Initialize delta for every actual batch
         if self._step_idx % self.args.gradient_accumulation_steps == 0:
@@ -239,10 +265,13 @@ class Trainer(HFTrainer):
                     }
                 ]
                 opt = AdamW(optimizer_params)
-                _, self._alum_optimizer = amp.initialize(
+                if self.args.fp16:
+                    _, self._alum_optimizer = amp.initialize(
                                                 self.model,
                                                 opt,
                                                 opt_level=self.args.fp16_opt_level)
+                else:
+                    self._alum_optimizer = opt
 
         # Predict logits and generate normal loss with normal inputs_embeds
         outputs = model(**inputs)
@@ -266,6 +295,8 @@ class Trainer(HFTrainer):
                 "end_positions": end_logits,
                 "inputs_embeds": input_embedding + self._delta,
             }
+            if self.params.model_type in ["xlm", "roberta", "distilbert"]:
+                del inputs["token_type_ids"]
 
             outputs = model(**inputs)
             adv_loss = outputs[0]
@@ -292,7 +323,7 @@ class Trainer(HFTrainer):
             if (self._step_idx + 1) % self.args.gradient_accumulation_steps == 0:
                 g_adv = self._delta.grad.data.detach()
                 logger.debug('\n=== self._delta.data max {} - norms {}'.format(torch.max(self._delta.data), torch.norm(self._delta.data)))
-                self._delta.data = project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
+                self._delta.data = _alum_grad_project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
 
                 del g_adv
 
@@ -310,6 +341,8 @@ class Trainer(HFTrainer):
             "end_positions": end_logits,
             "inputs_embeds": input_embedding + self._delta,
         }
+        if self.params.model_type in ["xlm", "roberta", "distilbert"]:
+            del inputs["token_type_ids"]
 
         outputs = model(**inputs)
         adv_loss = outputs[0]
@@ -355,6 +388,123 @@ class Trainer(HFTrainer):
         """
 
         return self._step(model, batch)
+
+
+    def adv_evaluate(
+            self,
+            prefix: str,
+            args,
+            tokenizer,
+            dataset,
+            examples,
+            features):
+
+        if not os.path.exists(self.args.output_dir) and self.args.local_rank in [-1, 0]:
+            os.makedirs(self.args.output_dir)
+
+        # TODO Add batch attacks for eval
+        eval_batch_size = max(1, self.args.n_gpu)
+
+        # Note that DistributedSampler samples randomly
+        eval_sampler = SequentialSampler(dataset)
+        eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=eval_batch_size)
+
+        # multi-gpu evaluate
+        if self.args.n_gpu > 1 and not isinstance(self.model, torch.nn.DataParallel):
+            self.model = torch.nn.DataParallel(self.model)
+
+        # Eval!
+        logger.info("***** Running evaluation {} *****".format(prefix))
+        logger.info("  Num examples = %d", len(dataset))
+        logger.info("  Batch size = %d", eval_batch_size)
+
+        all_results = []
+        start_time = timeit.default_timer()
+
+        _embed_layer = self.model.bert.get_input_embeddings()
+        self.model.eval()
+        for batch in tqdm(eval_dataloader, desc="Evaluating"):
+            batch = tuple(t.to(self.args.device) for t in batch)
+            adv_outputs = []  # (k_iter, batch_size)
+            # Set static embedding layer
+            _delta = None
+            for i_iter in range(args.K):
+                input_embedding = torch.stack([_embed_layer(x) for x in batch[0]])
+                if not _delta:
+                    m = torch.distributions.multivariate_normal.MultivariateNormal(torch.zeros(768),torch.eye(768)*(args.sigma ** 2))
+                    _sample = m.sample((args.max_seq_length,))
+                    _delta = torch.tensor(_sample, requires_grad = True, device = self.args.device)
+
+                adv_input_embedding = input_embedding + _delta
+                inputs = {
+                    "input_ids": None,
+                    "attention_mask": batch[1],
+                    "token_type_ids": batch[2],
+                    "start_positions": batch[3],
+                    "end_positions": batch[4],
+                    "inputs_embeds": adv_input_embedding,
+                }
+
+                intermed_adv_outputs = self.model(**inputs)
+
+                adv_loss = intermed_adv_outputs[0]
+                logger.debug('adv_loss: {} {} - embed {}'.format(adv_loss.size(), adv_loss, adv_input_embedding.size()))
+                adv_loss.backward()
+
+                # Calculate g_adv and update delta
+                g_adv = _delta.grad.data.detach()
+                _delta = _adv_sgn_attack(_delta, args.eps, args.eta, 'inf')
+                logger.debug('===_delta norm {} - gadv norm {}'.format(torch.norm(_delta), torch.norm(g_adv)))
+                del g_adv
+            _delta.grad.zero_()
+
+            # TODO: Check inf/NaN. How should we proceed with eval if NaNs?
+
+            with torch.no_grad():
+                # Generate adversarial loss with perturbed inputs against predicted logits
+                inputs = {
+                    "input_ids": None,
+                    "attention_mask": batch[1],
+                    "token_type_ids": batch[2],
+                    "inputs_embeds": input_embedding + _delta
+                }
+                adv_outputs = self.model(**inputs)
+
+                example_indices = batch[5]
+
+            for i, example_index in enumerate(example_indices):
+                eval_feature = features[example_index.item()]
+                unique_id = int(eval_feature.unique_id)
+
+                adv_output = [tensor_to_list(output[i]) for output in adv_outputs]
+
+                start_logits, end_logits = adv_output
+                result = SquadResult(unique_id, start_logits, end_logits)
+                example_id = example_index.item()
+                all_results.append(result)
+
+        eval_time = timeit.default_timer() - start_time
+        logger.info("  Evaluation done in total %f secs (%f sec per example)", eval_time, eval_time / len(dataset))
+
+        # Compute predictions
+        alum_results = []
+        adv_predictions = None
+        predictions = compute_predictions_logits(
+            examples,
+            features,
+            all_results,
+            args.n_best_size,
+            args.max_answer_length,
+            args.do_lower_case,
+            args.verbose_logging,
+            args.version_2_with_negative,
+            args.null_score_diff_threshold,
+            tokenizer,
+        )
+        alum_results = squad_evaluate(examples, predictions) 
+        print('===alum_results: ', alum_results)
+        return alum_results
+
     
     def evaluate(
             self,
@@ -412,9 +562,9 @@ class Trainer(HFTrainer):
         start_time = timeit.default_timer()
 
         for batch in tqdm(eval_dataloader, desc="Evaluating"):
+
             self.model.eval()
             batch = tuple(t.to(self.args.device) for t in batch)
-
             with torch.no_grad():
                 inputs = {
                     "input_ids": batch[0],
@@ -422,9 +572,14 @@ class Trainer(HFTrainer):
                     "token_type_ids": batch[2],
                 }
 
+                if self.params.model_type in ["xlm", "roberta", "distilbert"]:
+                    del inputs["token_type_ids"]
+
                 example_indices = batch[3]
 
                 outputs = self.model(**inputs)
+
+                example_indices = batch[5]
 
             for i, example_index in enumerate(example_indices):
                 eval_feature = features[example_index.item()]
@@ -437,20 +592,10 @@ class Trainer(HFTrainer):
 
                 all_results.append(result)
 
-        evalTime = timeit.default_timer() - start_time
-        logger.info("  Evaluation done in total %f secs (%f sec per example)", evalTime, evalTime / len(dataset))
+        eval_time = timeit.default_timer() - start_time
+        logger.info("  Evaluation done in total %f secs (%f sec per example)", eval_time, eval_time / len(dataset))
 
         # Compute predictions
-        '''
-        output_prediction_file = os.path.join(self.args.output_dir, "predictions_{}.json".format(prefix))
-        output_nbest_file = os.path.join(self.args.output_dir, "nbest_predictions_{}.json".format(prefix))
-
-        if args.version_2_with_negative:
-            output_null_log_odds_file = os.path.join(self.args.output_dir, "null_odds_{}.json".format(prefix))
-        else:
-            output_null_log_odds_file = None
-        '''
-        output_null_log_odds_file = output_nbest_file = output_prediction_file = None
 
         predictions = compute_predictions_logits(
             examples,
@@ -459,9 +604,6 @@ class Trainer(HFTrainer):
             args.n_best_size,
             args.max_answer_length,
             args.do_lower_case,
-            output_prediction_file,
-            output_nbest_file,
-            output_null_log_odds_file,
             args.verbose_logging,
             args.version_2_with_negative,
             args.null_score_diff_threshold,
@@ -471,4 +613,3 @@ class Trainer(HFTrainer):
         # Compute the F1 and exact scores.
         results = squad_evaluate(examples, predictions)
         return results
-
