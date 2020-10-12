@@ -73,12 +73,11 @@ def _wordnet_syns(term: str, num_syns: int=10) -> List:
 
 
 class MisspReplace(BaseGenerator):
-    
     """ A class to replace commonly misspelled terms
     ...
     Methods
     ----------
-    generate(term, num_missp)
+    generate(term, num_target)
       Generate misspellings for an input term 
     """
     def __init__(self):
@@ -103,45 +102,49 @@ class MisspReplace(BaseGenerator):
     def generate(
             self,
             term: str,
-            toks: List=None,
-            token_idx: int=None,
-            num_missp: int=10) -> List:
-        
+            num_target: int,
+            **kwargs) -> List:
         """Generate a certain number of misspellings for the input term.
 
         Parameters
         ----------
         term : str
             The input term for which we are looking for misspellings.
-        num_missp : Optional(int)
-            The number of misspellings for the input term. The number of misspelling should be greater than 1. The default value is 10.
+        num_target : int
+            The target number of misspellings to generate for the input term. The number of misspelling should be greater than 0
 
         Returns
         -------
         [str]
-            Returns a list of misspelling if there is any misspelling for the input term. Otherwise an empty list
+            Returns a list of misspellings if any. Otherwise an empty list
             
         Example
         -------
         >>> from generators import MisspReplace
         >>> mr = MisspReplace()
         >>> term = "worried"
-        >>> num_missp = 5
-        >>> mr.generate(term, num_missp)
+        >>> num_target = 5
+        >>> mr.generate(term=term, num_target=num_target)
         ['woried', 'worred']
         """
 
         # Num misspellings must be gte 1
-        num_missp = max(num_missp, 1)
-        import pdb; pdb.set_trace()
+        num_target = max(num_target, 1)
+
         if term in self._missp:
-            return self._missp[term][:num_missp]
+            return self._missp[term][:num_target]
         else:
             return []
 
 
 class MLMSynonymReplace(BaseGenerator):
-    """ Find synonym using MLM """
+    """ A class to replace synonyms using a masked language model (MLM)
+    ...
+    Methods
+    ----------
+    generate(term, num_target, toks, token_idx)
+      Generate misspellings for an input term 
+    """ 
     def __init__(self):
         super().__init__()
         self.model_path = 'bert-base-uncased'
@@ -153,12 +156,45 @@ class MLMSynonymReplace(BaseGenerator):
     def generate(
             self,
             term: str,
-            toks: str,
-            token_idx: int,
-            num_syns: int=10,
-        ):
+            num_target: int,
+            **kwargs) -> List:
+        """Generate a certain number of synonyms using an MLM.
+
+        Parameters
+        ----------
+        term : str
+            The input term for which we are looking for misspellings.
+        num_target : int
+            The target number of synonyms to generate for the input term. The number should be greater than 0
+        kwargs: Dict
+            - toks : List
+                The tokenized source string containing the target term.
+            - token_idx : int
+                The index of the target string in the tokenized source string
+            
+        Returns
+        -------
+        [str]
+            Returns a list of synonyms if any. Otherwise an empty list
+            
+        Example
+        -------
+        >>> from generators import MLMSynonymReplace
+        >>> mr = MLMSynonymReplace()
+        >>> term = "small"
+        >>> toks = ['I', 'was', 'born', 'in', 'a', 'small', 'town']
+        >>> token_idx = 5
+        >>> num_target = 2
+        >>> mr.generate(term=term, num_target=num_target, {'toks':toks, 'token_idx':token_idx})
+        ['little', 'mining']
+        """
+        toks = kwargs.get('toks', None)
+        token_idx = kwargs.get('token_idx', None)
+        if not toks or not token_idx:
+            raise RuntimeError('Input parameters `toks` and `token_idx` must be specified when using MLM generator')
+
         # Need to account for possible duplicate term in results
-        num_syns += 1
+        num_target += 1
         toks[token_idx] = self.tokenizer.mask_token
         sentence = ' '.join(toks)
         encoded_sent = self.tokenizer.encode(sentence, return_tensors="pt")
@@ -167,20 +203,19 @@ class MLMSynonymReplace(BaseGenerator):
         mask_token_logits = token_logits[0, mask_token_idx, :]
 
         probs = torch.nn.functional.softmax(mask_token_logits, dim=1)
-        topk = torch.topk(probs, num_syns)
+        topk = torch.topk(probs, num_target)
         top_n_probs, top_n_tokens = topk.values.detach().numpy()[0], topk.indices.detach().numpy()[0]
-        results = [self.tokenizer.decode([top_n_tokens[n]]) for n in range(min(num_syns,len(top_n_probs)))]
+        results = [self.tokenizer.decode([top_n_tokens[n]]) for n in range(min(num_target,len(top_n_probs)))]
         results = [x for x in results if x != term]
         return results
 
 
 class SynonymReplace(BaseGenerator):
-    
-    """ A class to generate synonyms for the input term
+    """ A class to generate synonyms for an input term using word2vec
     ...
     Methods
     ----------
-    generate(term, num_syns, similarity_thre)
+    generate(term, num_targets, {'similarity_thre':0.5})
       Generate synonyms for an input term 
     """
     def __init__(self):
@@ -213,40 +248,40 @@ class SynonymReplace(BaseGenerator):
     def generate(
             self,
             term: str,
-            toks: List=None,
-            token_idx: int=None,
-            num_syns: int=10,
-            similarity_thre: float=0.7) -> List:
-        
-        """Generate a certain number of synonyms for the input term. Based on the 
+            num_target: int,
+            **kwargs) -> List:
+        """Generate a certain number of synonyms using a word2vec model
 
         Parameters
         ----------
         term : str
-            The input term for which we are looking for synonyms.
-        num_syns : Optional(int)
-            The number of synonyms for the input term. The number of synonyms should be greater than 1. The default value is 10.
-        similarity_thre : Optional(float)
-            The similarity threshold. The function returns the synonyms with higher similarity than the threshold.
-
+            The input term for which we are looking for misspellings.
+        num_target : int
+            The target number of synonyms to generate for the input term. The number should be greater than 0
+        kwargs: Optional(Dict)
+            - similarity_thre : Optional(float)
+                Threshold of cosine similarity values in generated terms. The default value is 0.7
+            
         Returns
         -------
         [str]
-            Returns a list of synonyms for the input term.
-
+            Returns a list of synonyms if any. Otherwise an empty list
+            
         Example
         -------
         >>> from generators import SynonymReplace
-        >>> sr = SynonymReplace()
+        >>> mr = SynonymReplace()
         >>> term = "worried"
-        >>> num_syns = 3
+        >>> num_target = 3
         >>> similarity_thre = 0.7
-        >>> sr.generate(term, num_syns, similarity_thre)
+        >>> sr.generate(term, num_target, {'similarity_thre': 0.7})
         ['apprehensive', 'preoccupied', 'worry']
         """
 
+        similarity_thre = kwargs.get('similarity_thre', 0.7)
+
         # Number of synonyms must be gte 1
-        num_syns = max(num_syns, 1)
+        num_target = max(num_target, 1)
 
         if term in self._vecs:
             search_vector = self._vecs[term]
@@ -267,5 +302,5 @@ class SynonymReplace(BaseGenerator):
             return []
 
         # Choose top synonyms
-        synonyms = [x[0] for x in vspace[:num_syns]]
+        synonyms = [x[0] for x in vspace[:num_target]]
         return synonyms

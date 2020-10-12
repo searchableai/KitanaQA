@@ -66,7 +66,6 @@ def _adv_sgn_attack(delta, eps, eps_iter, ord = 'inf'):
 
 
 class Trainer(HFTrainer):
-    
     """ A class to provide the adversarial and augmented training and evaluation
     ...
 
@@ -88,7 +87,6 @@ class Trainer(HFTrainer):
 
     """
     def __init__(self, model_args=None, **kwargs):
-        
         """
         Parameters
         ----------
@@ -371,7 +369,6 @@ class Trainer(HFTrainer):
             model: nn.Module,
             batch: List,
         ) -> torch.Tensor:
-        
         """Performs one step of training (might be adversarial and/or augmented)
 
         Parameters
@@ -386,7 +383,6 @@ class Trainer(HFTrainer):
         torch.Tensor
             The training loss after one step of training
         """
-
         return self._step(model, batch)
 
 
@@ -397,7 +393,32 @@ class Trainer(HFTrainer):
             tokenizer,
             dataset,
             examples,
-            features):
+            features) -> torch.Tensor:
+        """Performs PGD attack on each example in the evaluation dataset, recording aggregate metrics
+
+        Parameters
+        ----------
+        prefix : str
+            The model to be used for training
+        args :
+
+        tokenizer : 
+            The tokenizer used to preprocess the data.
+
+        dataset : List(torch.utils.data.TensorDataset)
+            The evaluation dataset
+
+        examples : List(torch.utils.data.TensorDataset)
+            The examples in the evaluation dataset
+
+        features : List(torch.utils.data.TensorDataset)
+            SQuAD-like features corresponding to the evalaution dataset
+
+        Returns
+        -------
+        torch.Tensor
+            The evaluation metrics (Exact Match (EM) and F1-score)
+        """
 
         if not os.path.exists(self.args.output_dir) and self.args.local_rank in [-1, 0]:
             os.makedirs(self.args.output_dir)
@@ -513,9 +534,8 @@ class Trainer(HFTrainer):
             tokenizer,
             dataset,
             examples,
-            features):
-
-        """Performs the evaluation on the dataset
+            features) -> torch.Tensor:
+        """Performs evaluation on the dataset
 
         Parameters
         ----------

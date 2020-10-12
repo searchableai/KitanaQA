@@ -42,7 +42,6 @@ def load_and_cache_examples(
         evaluate=False,
         use_aug_path=False,
         output_examples=False) -> torch.utils.data.TensorDataset:
-    
     """Loads SQuAD-like data features from dataset file (or cache)
 
     Parameters
@@ -50,34 +49,35 @@ def load_and_cache_examples(
     args : doggmentator.trainer.arguments.ModelArguments
         A set of arguments related to the model. Specifically, the following arguments are used in this function:
         - args.train_file_path : str
-              Path to the training data files
+            Path to the training data file
         - args.do_aug : bool
-              Boolean variable to clarify whether the augmented training is to be used.
+            Flag to specify whether to use the augmented training set. If True, will be merged with the original training set specified in train_file_path. The default value is False.
         - args.aug_file_path : str
-              Path for augmented train dataset
+            Path for augmented train dataset
         - args.data_dir : str
-              Path for data files
+            Path for data files
         - args.model_name_or_path : str
-              Path to pretrained model or model identifier from huggingface.co/models
+            Path to pretrained model or model identifier from huggingface.co/models
         - args.max_seq_length : Optional[int]
-              Max length for the input tokens
+            Max length for the input tokens, specified to the Transformer model defined in `model_name_or_path`
         - args.overwrite_cache : Bool
-              Overwrite cached data on load
+            Overwrite cached data on load
         - args.predict_file_path : Dict[str, str]
-              Paths for cached eval datasets
+            Paths for eval datasets, where the key is the data file tag, and the value is the data file path. Multiple file paths may be given for evaluation, and each will be cached and loaded separately.
         - args.version_2_with_negative : Bool
-              SQuAD v2.0 training
+            Flag that specifies to use the SQuAD v2.0 preprocessors. The default value is False.
         - args.doc_stride : Optional[int]
+            Corresponds to the doc_stride input param for some Huggingface Transformer models.
         - args.max_query_length : Optional[int]
-              Max length for the query segment
+              Max length for the query segment in the Transformer model input.
     tokenizer : 
-        The tokenizer used to preprocess the data.
-    evaluate : Bool
-        A boolean variabla describing whether this is an evaluation or training dataset.
-    use_aug_path : Bool
-        A boolean variable to clarify whether a augemented data path is given. If it is given, the augmented data path is used loading and caching the data.
-    output_examples : Bool
-        a boolean variable to clarify whether the examples and the features should also given as an output. If False, the function only returns the dataset.
+        The Transformer model tokenizer used to preprocess the data.
+    evaluate : Optional(Bool)
+        A flag to set the trainer task to either train or evaluate. The default value is False.
+    use_aug_path : Optional(Bool)
+        A flag to define whether to use the aug_file_path or the train_file_path. If True, the augmented data path is used when loading and caching the data.
+    output_examples : Optional(Bool)
+        A flag to define whether the examples and features should be returned by the data preprocessor. If False, the preprocessor only returns the dataset. This is necessary if the Trainer is used for evaluation or in a pipeline where training is followed by evaluation.
 
     Returns
     -------
@@ -85,7 +85,7 @@ def load_and_cache_examples(
         The dataset containing the data to be used for training or evaluation.
         Important Notes:
         - If the output_examples is True, examples and features also are returned.
-        - If evaluate = True, the output will be a dictionary for which the keys are the name of the datasets used for evaluation and the values are the dataset (and optionally the examples and features)
+        - If evaluate = True, the output will be a dictionary for which the keys are the name of the datasets used for evaluation and the values are the dataset (and optionally the examples and features).
     """
 
     if not args.train_file_path and not (args.do_aug and args.aug_file_path):
@@ -201,11 +201,11 @@ def eval_task(args):
     args : tuple
         A tuple including the ModelArguments (doggmentator.trainer.arguments.ModelArguments) and TrainingArguments (transformers.training_args.TrainingArguments). Specifically, the following arguments from the ModelArguments are used in this function:
         - eval_all_checkpoints : bool
-              Evaluate all the checkpoints
+              Evaluate all checkpoint found in the output_dir, matching the pattern `checkpoint-(traing_step)`
         - model_name_or_path : str
               Path to pretrained model or model identifier from huggingface.co/models
         - model_type : str
-              Currently, one of either 'bert' or 'albert' models
+              Currently, one of either 'bert', 'distilbert' or  'albert' models
         - tokenizer_name_or_path : str
               Pretrained tokenizer name or path if not the same as model_name
         - cache_dir : str
@@ -332,7 +332,7 @@ def train_task(args, model, tokenizer, train_dataset):
 
     Returns
     -------
-    This function does not return anything. It trains the model and save it.
+    None
     """
     model_args, training_args = args
 
@@ -358,7 +358,30 @@ def train_task(args, model, tokenizer, train_dataset):
         tokenizer.save_pretrained(training_args.output_dir)
 
 
-def build_flow(args, label: str='default-train', model=None, tokenizer=None, train_dataset=None):
+def build_flow(
+            args,
+            label: str='default',
+            model=None,
+            tokenizer=None,
+            train_dataset=None) -> Flow:
+    """Constructs a Prefect flow composed of sequential modeling steps
+
+    Parameters
+    ----------
+    label : Optional(str)
+        The unique tag used to identify the Flow instance. The default value is 'default'
+    model : Optional(transformers.PreTrainedModel)
+        The pre-trained Transformer model. This parameter is required for training. The default value is None.
+    tokenizer : Optional(transformers.PreTrainedTokenizer)
+        The tokenizer used to preprocess the data for the model.
+    train_dataset : torch.utils.data.TensorDataset
+        The training dataset. This parameter is required for training. The default value is None.
+
+    Returns
+    -------
+    Flow object
+        A prefect Flow object contained the specified steps and parameters
+    """
     model_args, training_args = args
     with Flow(label) as f:
         if training_args.do_eval and training_args.do_train:
@@ -386,15 +409,6 @@ def build_flow(args, label: str='default-train', model=None, tokenizer=None, tra
             f = None
             logging.error('Flow must be instantiated with at least one of \"do_train\", \"do_eval\"')
     return f
-
-def is_apex_available():
-    try:
-        from apex import amp  # noqa: F401
-        _has_apex = True
-    except ImportError:
-        _has_apex = False
-    return _has_apex
-
 
 def set_seed(args):
     random.seed(args.seed)
