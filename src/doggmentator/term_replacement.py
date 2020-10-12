@@ -139,7 +139,13 @@ def get_scores(
 
 
 class DropTerms():
-    """ Remove terms from a sequence """
+    """ A class to generate sentence perturbations by dropping target terms
+    ...
+    Methods
+    ----------
+    drop_terms(sentence, num_terms, num_output_sents)
+      Generate synonyms for an input term 
+    """
     def __init__(self):
         """Instantiate a DropTerms object"""
         pass
@@ -149,7 +155,32 @@ class DropTerms():
             sentence: str,
             num_terms: int=1,
             num_output_sents: int=1) -> List:
-        """Generate list of strings by randomly dropping terms"""
+        """Generate a certain number of sentence perturbations by dropping select terms
+
+        Parameters
+        ----------
+        sentence : str
+            The input sentence to be perturbed.
+        num_terms : Optional(int)
+            The number of terms to target in the original sentence, with this perturbation. The number should be greater than 0. The default value is 1.
+        num_output_sents : Optional(int)
+            The number of perturbed sentences to produce. The number should be greater than 0. The default is 1.
+
+        Returns
+        -------
+        [str]
+            Returns a list of perturbed sentences for the input sentence.
+
+        Example
+        -------
+        >>> from term_replacement import DropTerms
+        >>> p = DropTerms()
+        >>> term = "I was born in a small town"
+        >>> num_terms = 1
+        >>> num_output_sents = 1
+        >>> p.generate(term, num_terms, num_output_sents)
+        ['I born in a small town']
+        """
 
         inputs = validate_inputs(
             num_terms,
@@ -214,12 +245,26 @@ class DropTerms():
 
 
 class ReplaceTerms():
-    """ Generate sentence variants using term replacement strategies """
+    """ A class to generate sentence perturbations by replacement
+    ...
+    Methods
+    ----------
+    replace_terms(sentence, importance_scores, num_replacements, num_output_sents, sampling_strategy, sampling_k)
+      Generate synonyms for an input term 
+    """
     def __init__(
             self,
             rep_type: str='synonym',
             use_ner: bool=True):
-        """Instantiate a ReplaceTerms object"""
+        """Instantiate a ReplaceTerms object
+
+        Parameters
+        ----------
+        rep_type : Optional(str)
+            The type of target perturbation. May include `synonym` for word2vec replacement, `mlmsynonym` for MLM-based replacement, or `misspelling` for misspelling replacement.
+        use_ner : Optional(bool)
+            Flag specifying whether to use entity-aware replacement. If True, when calculating the sampling weights for any perturbation, named entities will be zeroed. In this case, the NER model is loaded here. The default value is True.
+        """
         self.use_ner = use_ner
         if rep_type not in ['synonym', 'misspelling', 'mlmsynonym']:
             logger.error(
@@ -309,7 +354,37 @@ class ReplaceTerms():
             num_output_sents: int=1,
             sampling_strategy: str='random',
             sampling_k: int=None) -> List:
-        """Generate list of strings by replacing specified number of terms with their synonyms"""
+        """Generate a certain number of sentence perturbations by replacement using either misspelling or synonyms
+
+        Parameters
+        ----------
+        sentence : str
+            The input sentence to be perturbed.
+        importance_scores : Optional(List)
+            List of tuples defining a weight for each term in the tokenized sentence. These weights are used during sampling to influence perturnation probabilities. If None, uniform sampling is used by default.
+        num_replacements : Optional(int)
+            Target number of terms to replace in the original sentence. The number is chosen randomly using the target as an upper bound, and lower bound of 1. The default is 1.
+        num_output_sents : Optional(int)
+            Target number of perturbed sentences to generate based on the original sentence. The default is 1.
+        sampling_strategy : Optional(str)
+            Strategy used to sample terms to perturb in the original sentence. The default is random. If importance_scores is given, then sampling_strategy may be `topK` or `bottomK`, in which case the importance_scores (or inverted scores) vector is used for weighted sampling.
+        sampling_k : Optional(int)
+            The number of terms in the importance score vector to include in topK or bottomK sampling. This parameter is not used by the default sampling_strategy, `random` sampling.
+        Returns
+        -------
+        [str]
+            Returns a list of perturbed sentences for the input sentence.
+
+        Example
+        -------
+        >>> from term_replacement import DropTerms
+        >>> p = DropTerms()
+        >>> term = "I was born in a small town"
+        >>> num_terms = 1
+        >>> num_output_sents = 1
+        >>> p.generate(term, num_terms, num_output_sents)
+        ['I born in a small town']
+        """
 
         inputs = validate_inputs(
             num_replacements,
@@ -363,7 +438,7 @@ class ReplaceTerms():
         # Create List of Lists of term variants
         generated = {x[0]:None for x in term_score_index}
         generated = {
-            x[0]:self._generator.generate(x[0], tokens, i)
+            x[0]:self._generator.generate(x[0], 10, **{'toks':tokens, 'token_idx':i})
             for i,x in enumerate(term_score_index)
             if not x[2]
         }

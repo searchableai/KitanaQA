@@ -23,14 +23,14 @@ class TestGenerators(unittest.TestCase):
 
     def test_misspelling_generator(self):
         missp_gen = MisspReplace()
-        misspellings = missp_gen.generate('apple', None, None, 5)
+        misspellings = missp_gen.generate('apple', 5)
         assert isinstance(misspellings, list)
         assert all([isinstance(x, str) for x in misspellings])
         assert len(misspellings) == 5
 
     def test_w2v_synonym_generator(self):
         syn_gen = SynonymReplace()
-        synonyms = syn_gen.generate('apple', None, None, 3, 0.75)
+        synonyms = syn_gen.generate('apple', 3, **{'similarity_thre': 0.75})
         assert isinstance(synonyms, list)
         assert all([isinstance(x, str) for x in synonyms])
         assert len(synonyms) == 3
@@ -38,7 +38,7 @@ class TestGenerators(unittest.TestCase):
     def test_mlm_synonym_generator(self):
         syn_gen = MLMSynonymReplace()
         sent = 'I was born in a small town'
-        synonyms = syn_gen.generate('small', sent.split(), 5, 3)
+        synonyms = syn_gen.generate('small', 3, **{'toks': sent.split(), 'token_idx': 5})
         assert isinstance(synonyms, list)
         assert all([isinstance(x, str) for x in synonyms])
         assert len(synonyms) == 3
