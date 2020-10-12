@@ -112,6 +112,8 @@ class MisspReplace(BaseGenerator):
             The input term for which we are looking for misspellings.
         num_target : int
             The target number of misspellings to generate for the input term. The number of misspelling should be greater than 0
+        kwargs : Dict
+            A set of generator-specific arguments.
 
         Returns
         -------
@@ -167,6 +169,7 @@ class MLMSynonymReplace(BaseGenerator):
         num_target : int
             The target number of synonyms to generate for the input term. The number should be greater than 0
         kwargs: Dict
+            A set of generator-specific arguments
             - toks : List
                 The tokenized source string containing the target term.
             - token_idx : int
@@ -259,6 +262,7 @@ class SynonymReplace(BaseGenerator):
         num_target : int
             The target number of synonyms to generate for the input term. The number should be greater than 0
         kwargs: Optional(Dict)
+            A set of generator-specific arguments
             - similarity_thre : Optional(float)
                 Threshold of cosine similarity values in generated terms. The default value is 0.7
             
