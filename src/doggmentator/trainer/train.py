@@ -19,11 +19,7 @@ from transformers import Trainer as HFTrainer
 from transformers import PreTrainedModel, AdamW
 from transformers.file_utils import is_apex_available
 from transformers.data.processors.squad import SquadResult
-from transformers.data.metrics.squad_metrics import squad_evaluate
-
-from doggmentator.trainer.squad_metrics import (
-    compute_predictions_logits,
-)
+from transformers.data.metrics.squad_metrics import squad_evaluate, compute_predictions_logits
 
 from doggmentator.trainer.custom_schedulers import get_custom_exp, get_custom_linear
 from doggmentator import get_logger
@@ -507,9 +503,6 @@ class Trainer(HFTrainer):
         eval_time = timeit.default_timer() - start_time
         logger.info("  Evaluation done in total %f secs (%f sec per example)", eval_time, eval_time / len(dataset))
 
-        # Compute predictions
-        alum_results = []
-        adv_predictions = None
         predictions = compute_predictions_logits(
             examples,
             features,
@@ -517,6 +510,9 @@ class Trainer(HFTrainer):
             args.n_best_size,
             args.max_answer_length,
             args.do_lower_case,
+            None,
+            None,
+            None,
             args.verbose_logging,
             args.version_2_with_negative,
             args.null_score_diff_threshold,
@@ -616,7 +612,6 @@ class Trainer(HFTrainer):
         logger.info("  Evaluation done in total %f secs (%f sec per example)", eval_time, eval_time / len(dataset))
 
         # Compute predictions
-
         predictions = compute_predictions_logits(
             examples,
             features,
@@ -624,6 +619,9 @@ class Trainer(HFTrainer):
             args.n_best_size,
             args.max_answer_length,
             args.do_lower_case,
+            None,
+            None,
+            None,
             args.verbose_logging,
             args.version_2_with_negative,
             args.null_score_diff_threshold,
