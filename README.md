@@ -35,7 +35,7 @@ BERT-base (ALUM) | 82 | 88.99
 # Features
 
 ## Adversarial Training
-Our implementation is based on the ALUM model, proposed here [https://arxiv.org/pdf/2004.08994.pdf]. We have corrected a number of issues in the original formalism and improved algorithm robustness, adding flexible adversarial hyperparameter scheduling, as well as support for fp16.
+Our implementation is based on the ALUM model, proposed here [https://arxiv.org/pdf/2004.08994.pdf]. We have introduced a number of updates to the formalism and added additional features like adversarial hyperparameter scheduling, and support for fp16 adversarial training.
 
 ## Adversarial Attack
 A key measure of robustness in neural networks is the so-called white-box adversarial attack. In the context of Transformer-based Question-Answer models, this attack seeks to inject certain types of noise into the input embeddings and assess performance on the original labels. Here, we implement the project gradient descent (PGD) attack mechanism, bounded by the l-inf ball. Metrics can be calculated for non-adversarial and adversarial evaluation, making robustness studies much more streamlined and accessible.
@@ -57,15 +57,14 @@ The following perturbation methods are available to augment SQuAD-like data:
 - (original)  How *[many]* species of plants were recorded in Egypt?
 + (augmented) How *[mony]* species of plants were registered in Egypt?
 ```
-Each perturbation type also supports custom term importance sampling, e.g. as generated using a MLM
-```diff
-- (How, 0.179), (many, 0.254), (species, 0.123), (of, 0.03), (plants, 0.136) (were, 0.039), (recorded, 0.067), (in, 0.012), (Egypt, 0.159)
-```
-Perturbation types can also be flexibly applied in combination with different frequencies for fine-grained control of natural noise profiles
+Perturbation types can be flexibly applied in combination with different frequencies for fine-grained control of natural noise profiles
 ```diff
 - (original)  How *[many]* species *[of]* plants *[were]* recorded in Egypt?
 + (augmented) How *[mony]* species *[]* plants *[]* recorded in Egypt?
 ```
+Each perturbation type also supports custom term importance sampling, e.g. as generated using a MLM
+```(How, 0.179), (many, 0.254), (species, 0.123), (of, 0.03), (plants, 0.136) (were, 0.039), (recorded, 0.067), (in, 0.012), (Egypt, 0.159)```
+
 ## ML Flows
 Using the Prefect library, Doggmenetator makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also supports rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently. You can even get training results reported directly in Slack!!!
 
