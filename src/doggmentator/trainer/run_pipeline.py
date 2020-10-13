@@ -16,6 +16,9 @@ from transformers import (
     BertTokenizer,
     HfArgumentParser,
     TrainingArguments,
+    DistilBertConfig, 
+    DistilBertForQuestionAnswering, 
+    DistilBertTokenizer,
 )
 
 from doggmentator.trainer.arguments import ModelArguments

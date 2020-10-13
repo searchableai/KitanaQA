@@ -191,7 +191,7 @@ which is <cite>train-v1.1.json</cite> and <cite>train-v2.0.json</cite> for squad
 <dl class="py class">
 <dt id="doggmentator.trainer.alum_squad_processor.AlumSquadV1Processor">
 <em class="property">class </em><code class="sig-prename descclassname">doggmentator.trainer.alum_squad_processor.</code><code class="sig-name descname">AlumSquadV1Processor</code><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.AlumSquadV1Processor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="doggmentator.trainer.html#doggmentator.trainer.alum_squad_processor.AlumSquadProcessor" title="doggmentator.trainer.alum_squad_processor.AlumSquadProcessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">doggmentator.trainer.alum_squad_processor.AlumSquadProcessor</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#doggmentator.trainer.alum_squad_processor.AlumSquadProcessor" title="doggmentator.trainer.alum_squad_processor.AlumSquadProcessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">doggmentator.trainer.alum_squad_processor.AlumSquadProcessor</span></code></a></p>
 <dl class="py attribute">
 <dt id="doggmentator.trainer.alum_squad_processor.AlumSquadV1Processor.dev_file">
 <code class="sig-name descname">dev_file</code><em class="property"> = 'dev-v1.1.json'</em><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.AlumSquadV1Processor.dev_file" title="Permalink to this definition">¶</a></dt>
@@ -207,7 +207,7 @@ which is <cite>train-v1.1.json</cite> and <cite>train-v2.0.json</cite> for squad
 <dl class="py class">
 <dt id="doggmentator.trainer.alum_squad_processor.AlumSquadV2Processor">
 <em class="property">class </em><code class="sig-prename descclassname">doggmentator.trainer.alum_squad_processor.</code><code class="sig-name descname">AlumSquadV2Processor</code><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.AlumSquadV2Processor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="doggmentator.trainer.html#doggmentator.trainer.alum_squad_processor.AlumSquadProcessor" title="doggmentator.trainer.alum_squad_processor.AlumSquadProcessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">doggmentator.trainer.alum_squad_processor.AlumSquadProcessor</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#doggmentator.trainer.alum_squad_processor.AlumSquadProcessor" title="doggmentator.trainer.alum_squad_processor.AlumSquadProcessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">doggmentator.trainer.alum_squad_processor.AlumSquadProcessor</span></code></a></p>
 <dl class="py attribute">
 <dt id="doggmentator.trainer.alum_squad_processor.AlumSquadV2Processor.dev_file">
 <code class="sig-name descname">dev_file</code><em class="property"> = 'dev-v2.0.json'</em><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.AlumSquadV2Processor.dev_file" title="Permalink to this definition">¶</a></dt>
@@ -441,8 +441,8 @@ if ‘pt’: returns a torch.data.TensorDataset,</p></li>
 </dd></dl>
 
 </div>
-<div class="section" id="doggmentator-trainer-run-pipeline-module">
-<h2>doggmentator.trainer.run_pipeline module<a class="headerlink" href="#doggmentator-trainer-run-pipeline-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-doggmentator.trainer.run_pipeline">
+<span id="doggmentator-trainer-run-pipeline-module"></span><h2>doggmentator.trainer.run_pipeline module<a class="headerlink" href="#module-doggmentator.trainer.run_pipeline" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-doggmentator.trainer.squad_metrics">
 <span id="doggmentator-trainer-squad-metrics-module"></span><h2>doggmentator.trainer.squad_metrics module<a class="headerlink" href="#module-doggmentator.trainer.squad_metrics" title="Permalink to this headline">¶</a></h2>
@@ -713,7 +713,7 @@ see <a class="reference external" href="https://www.comet.ml/docs/python-sdk/adv
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>args</strong> (<a class="reference internal" href="doggmentator.trainer.html#doggmentator.trainer.arguments.ModelArguments" title="doggmentator.trainer.arguments.ModelArguments"><em>doggmentator.trainer.arguments.ModelArguments</em></a>) – <p>A set of arguments related to the model. Specifically, the following arguments are used in this function:
+<li><p><strong>args</strong> (<a class="reference internal" href="#doggmentator.trainer.arguments.ModelArguments" title="doggmentator.trainer.arguments.ModelArguments"><em>doggmentator.trainer.arguments.ModelArguments</em></a>) – <p>A set of arguments related to the model. Specifically, the following arguments are used in this function:
 - args.train_file_path : str</p>
 <blockquote>
 <div><p>Path to the training data file</p>
@@ -794,11 +794,6 @@ Important Notes:
 <code class="sig-prename descclassname">doggmentator.trainer.utils.</code><code class="sig-name descname">post_to_slack</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span></em>, <em class="sig-param"><span class="n">old_state</span></em>, <em class="sig-param"><span class="n">new_state</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.utils.post_to_slack" title="Permalink to this definition">¶</a></dt>
 <dd><p>Post a msg to Slack url if configured, else simply return new_state object</p>
 </dd></dl>
-
-<dl class="py function">
-<dt id="doggmentator.trainer.utils.set_seed">
-<code class="sig-prename descclassname">doggmentator.trainer.utils.</code><code class="sig-name descname">set_seed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">args</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.utils.set_seed" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 </div>
 <div class="section" id="module-doggmentator.trainer">
