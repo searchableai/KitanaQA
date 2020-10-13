@@ -16,10 +16,14 @@ from transformers import (
     BertTokenizer,
     HfArgumentParser,
     TrainingArguments,
+    DistilBertConfig, 
+    DistilBertForQuestionAnswering, 
+    DistilBertTokenizer,
 )
 
 from doggmentator.trainer.arguments import ModelArguments
-from doggmentator.trainer.utils import set_seed, load_and_cache_examples, is_apex_available, post_to_slack, build_flow
+from doggmentator.trainer.utils import load_and_cache_examples, post_to_slack, build_flow
+from transformers.file_utils import is_apex_available
 
 from doggmentator import get_logger
 logger = get_logger()
@@ -31,23 +35,8 @@ MODEL_CLASSES = {
 }
 
 
-if __name__ == "__main__":
-    import argparse
-
-    # Get path to config file
-    clparser = argparse.ArgumentParser(description='Commandline args')
-    clparser.add_argument('--config_path', type=str, nargs=1, default=None)
-    clargs = clparser.parse_args()
-    if clargs.config_path:
-        config_path = clargs.config_path[0]
-    else:
-        config_path = '/'.join([os.getcwd(),'args.json'])
-    if not os.path.exists(config_path):
-        raise Exception('Could not find config_path. Check to see if your json file is located at that path.')
-
-    # Initialize args
-    parser = HfArgumentParser(dataclass_types=[ModelArguments, TrainingArguments])
-    model_args, training_args = parser.parse_json_file(config_path)
+def _setup(model_args, training_args):
+    """ Prepare environment and models for training and evaluation """
 
     if model_args.model_type not in list(MODEL_CLASSES.keys()):
         raise NotImplementedError("Model type should be 'bert', 'albert'")
@@ -82,15 +71,13 @@ if __name__ == "__main__":
     )
     logger.info("Training/evaluation parameters %s", training_args)
 
-    # Set seed
-    set_seed(training_args)
-
     # Load model and tokenizer
     config, model_cls, tokenizer_cls = MODEL_CLASSES[model_args.model_type]
     tokenizer = tokenizer_cls.from_pretrained(
         model_args.tokenizer_name_or_path if model_args.tokenizer_name_or_path else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
     )
+
     model = model_cls.from_pretrained(
         model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
@@ -108,6 +95,29 @@ if __name__ == "__main__":
         logger.info('Concatenate augmented examples to original examples. Train length = {}, Aug length = {}'.format(len(train_dataset), len(aug_dataset)))
         train_dataset += aug_dataset
 
+    return model, tokenizer, train_dataset
+
+
+if __name__ == "__main__":
+    import argparse
+
+    # Get path to config file
+    clparser = argparse.ArgumentParser(description='Commandline args')
+    clparser.add_argument('--config_path', type=str, nargs=1, default=None)
+    clargs = clparser.parse_args()
+    if clargs.config_path:
+        config_path = clargs.config_path[0]
+    else:
+        config_path = '/'.join([os.getcwd(),'args.json'])
+    if not os.path.exists(config_path):
+        raise Exception('Could not find config_path. Check to see if your json file is located at that path.')
+
+    # Initialize args
+    parser = HfArgumentParser(dataclass_types=[ModelArguments, TrainingArguments])
+    model_args, training_args = parser.parse_json_file(config_path)
+
+    model, tokenizer, train_dataset = _setup(model_args, training_args)
+
     f = build_flow(
             (model_args, training_args),
             model=model,
@@ -116,7 +126,3 @@ if __name__ == "__main__":
 
     if f:
         f.run()
-
-    # TODO: Log Results
-
-    # TODO: Deploy Model

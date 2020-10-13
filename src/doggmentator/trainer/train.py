@@ -19,11 +19,7 @@ from transformers import Trainer as HFTrainer
 from transformers import PreTrainedModel, AdamW
 from transformers.file_utils import is_apex_available
 from transformers.data.processors.squad import SquadResult
-from transformers.data.metrics.squad_metrics import squad_evaluate
-
-from doggmentator.trainer.squad_metrics import (
-    compute_predictions_logits,
-)
+from transformers.data.metrics.squad_metrics import squad_evaluate, compute_predictions_logits
 
 from doggmentator.trainer.custom_schedulers import get_custom_exp, get_custom_linear
 from doggmentator import get_logger
@@ -66,7 +62,33 @@ def _adv_sgn_attack(delta, eps, eps_iter, ord = 'inf'):
 
 
 class Trainer(HFTrainer):
+    """ A class to provide the adversarial and augmented training and evaluation
+    ...
+
+    Attributes
+    ----------
+    model_args: dataclass, 'optional' (?)
+      The arguments to tweak for training. Will default to a basic instance in arguments.py if not provided. For a list of the model_args, refer to arguments.py.
+
+    Methods
+    ----------
+    log(logs, iterator = None)
+      Modified from HFTrainer base class, Log :obj:`logs` on the various objects watching training.
+
+    training_step(model, batch)
+      Performs one step of training (might be adversarial and/or augmented) and returns the loss.
+
+    evaluate(prefix, args, tokenizer, dataset, examples, features)
+      Performs the evaluation on the dataset and returns the evaluation metrics (Exact Match (EM) and F1-score).
+
+    """
     def __init__(self, model_args=None, **kwargs):
+        """
+        Parameters
+        ----------
+        model_args : dataclass
+            The model arguments. For a list of the model_args, check the arguments.py.
+        """
         super().__init__(**kwargs)
 
         # Use torch default collate to bypass native
@@ -343,6 +365,20 @@ class Trainer(HFTrainer):
             model: nn.Module,
             batch: List,
         ) -> torch.Tensor:
+        """Performs one step of training (might be adversarial and/or augmented)
+
+        Parameters
+        ----------
+        model : nn.Module
+            The model to be used for training
+        batch : List
+            The btach used for one step of training. Includes the input_ids, attention_masks, token_type_ids, start_positions, and end_positions
+
+        Returns
+        -------
+        torch.Tensor
+            The training loss after one step of training
+        """
         return self._step(model, batch)
 
 
@@ -353,7 +389,32 @@ class Trainer(HFTrainer):
             tokenizer,
             dataset,
             examples,
-            features):
+            features) -> torch.Tensor:
+        """Performs PGD attack on each example in the evaluation dataset, recording aggregate metrics
+
+        Parameters
+        ----------
+        prefix : str
+            The model to be used for training
+        args :
+
+        tokenizer : 
+            The tokenizer used to preprocess the data.
+
+        dataset : List(torch.utils.data.TensorDataset)
+            The evaluation dataset
+
+        examples : List(torch.utils.data.TensorDataset)
+            The examples in the evaluation dataset
+
+        features : List(torch.utils.data.TensorDataset)
+            SQuAD-like features corresponding to the evalaution dataset
+
+        Returns
+        -------
+        torch.Tensor
+            The evaluation metrics (Exact Match (EM) and F1-score)
+        """
 
         if not os.path.exists(self.args.output_dir) and self.args.local_rank in [-1, 0]:
             os.makedirs(self.args.output_dir)
@@ -442,9 +503,6 @@ class Trainer(HFTrainer):
         eval_time = timeit.default_timer() - start_time
         logger.info("  Evaluation done in total %f secs (%f sec per example)", eval_time, eval_time / len(dataset))
 
-        # Compute predictions
-        alum_results = []
-        adv_predictions = None
         predictions = compute_predictions_logits(
             examples,
             features,
@@ -452,6 +510,9 @@ class Trainer(HFTrainer):
             args.n_best_size,
             args.max_answer_length,
             args.do_lower_case,
+            None,
+            None,
+            None,
             args.verbose_logging,
             args.version_2_with_negative,
             args.null_score_diff_threshold,
@@ -469,7 +530,32 @@ class Trainer(HFTrainer):
             tokenizer,
             dataset,
             examples,
-            features):
+            features) -> torch.Tensor:
+        """Performs evaluation on the dataset
+
+        Parameters
+        ----------
+        prefix : str
+            The model to be used for training
+        args :
+
+        tokenizer : 
+            The tokenizer used to preprocess the data.
+
+        dataset : List(torch.utils.data.TensorDataset)
+            The evaluation dataset
+
+        examples : List(torch.utils.data.TensorDataset)
+            The examples in the evaluation dataset
+
+        features : List(torch.utils.data.TensorDataset)
+            SQuAD-like features corresponding to the evalaution dataset
+
+        Returns
+        -------
+        torch.Tensor
+            The evaluation metrics (Exact Match (EM) and F1-score)
+        """
         if not os.path.exists(self.args.output_dir) and self.args.local_rank in [-1, 0]:
             os.makedirs(self.args.output_dir)
 
@@ -526,7 +612,6 @@ class Trainer(HFTrainer):
         logger.info("  Evaluation done in total %f secs (%f sec per example)", eval_time, eval_time / len(dataset))
 
         # Compute predictions
-
         predictions = compute_predictions_logits(
             examples,
             features,
@@ -534,6 +619,9 @@ class Trainer(HFTrainer):
             args.n_best_size,
             args.max_answer_length,
             args.do_lower_case,
+            None,
+            None,
+            None,
             args.verbose_logging,
             args.version_2_with_negative,
             args.null_score_diff_threshold,
