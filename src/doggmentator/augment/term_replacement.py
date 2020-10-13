@@ -17,7 +17,7 @@ from sparknlp.annotator import *
 from sparknlp.common import RegexRule
 from sparknlp.base import *
 from doggmentator.nlp_utils.firstnames import firstnames
-from doggmentator.generators import SynonymReplace, MisspReplace, MLMSynonymReplace
+from doggmentator.augment.generators import SynonymReplace, MisspReplace, MLMSynonymReplace
 from doggmentator import get_logger
 
 nltk.download('stopwords')

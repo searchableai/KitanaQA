@@ -11,30 +11,28 @@ import numpy as np
 from typing import List, Dict, Tuple
 from numpy import dot
 from numpy.linalg import norm
-from stop_words import get_stop_words
-from nltk.corpus import stopwords, wordnet
 from sparknlp.pretrained import PretrainedPipeline
 from sparknlp.annotator import *
 from sparknlp.common import RegexRule
 from sparknlp.base import *
 from transformers import AutoTokenizer, BertForMaskedLM
-from doggmentator.nlp_utils.firstnames import firstnames
 from doggmentator import get_logger
 
 # init logging
 logger = get_logger()
 
-# stopwords and common names lists
-stop_words = list(get_stop_words('en'))  # have around 900 stopwords
-nltk_words = list(stopwords.words('english'))  # have around 150 stopwords
-stop_words.extend(nltk_words)
-stop_words = list(set(stop_words))
-remove_list = firstnames+stop_words
-remove_list = [x.lower() for x in remove_list]
-
 
 class BaseGenerator:
-    """ Base class for generator objects """
+    """ A base class for generating token-level perturbations
+    ...
+    Methods
+    ----------
+    _check_sent(sent)
+      Validate and sanitize an input sentence
+    _cosine_similarity(v1, v2)
+      Calculate the cosine similarity between two vectors
+    """
+
     def _check_sent(self, sent: str) -> str:
         """Run sanity checks on input and sanitize"""
         try:
@@ -62,6 +60,7 @@ def _wordnet_syns(term: str, num_syns: int=10) -> List:
     from warnings import warn
     warn("WordNet synonym generation is deprecated. Please use one of the other methods available.")
 
+    from nltk.corpus import wordnet
     synonyms = []
     for syn in wordnet.synsets(term):
         for lemma in syn.lemmas() :
@@ -112,6 +111,8 @@ class MisspReplace(BaseGenerator):
             The input term for which we are looking for misspellings.
         num_target : int
             The target number of misspellings to generate for the input term. The number of misspelling should be greater than 0
+        kwargs : Dict
+            A set of generator-specific arguments.
 
         Returns
         -------
@@ -167,6 +168,7 @@ class MLMSynonymReplace(BaseGenerator):
         num_target : int
             The target number of synonyms to generate for the input term. The number should be greater than 0
         kwargs: Dict
+            A set of generator-specific arguments
             - toks : List
                 The tokenized source string containing the target term.
             - token_idx : int
@@ -259,6 +261,7 @@ class SynonymReplace(BaseGenerator):
         num_target : int
             The target number of synonyms to generate for the input term. The number should be greater than 0
         kwargs: Optional(Dict)
+            A set of generator-specific arguments
             - similarity_thre : Optional(float)
                 Threshold of cosine similarity values in generated terms. The default value is 0.7
             

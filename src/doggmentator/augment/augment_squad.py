@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 import math
 from collections import Counter
 from datetime import datetime
-from doggmentator.term_replacement import *
+from doggmentator.augment.term_replacement import *
 from doggmentator import get_logger
 
 

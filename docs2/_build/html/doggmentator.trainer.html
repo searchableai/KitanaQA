@@ -83,7 +83,7 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">src</a></li>
+<li class="toctree-l1"><a class="reference internal" href="doggmentator.html">doggmentator package</a></li>
 </ul>
 
             
@@ -130,7 +130,7 @@
     
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
-          <li><a href="modules.html">src</a> &raquo;</li>
+          <li><a href="modules.html">&lt;no title&gt;</a> &raquo;</li>
         
           <li><a href="doggmentator.html">doggmentator package</a> &raquo;</li>
         
@@ -319,8 +319,8 @@
 </dd></dl>
 
 </div>
-<div class="section" id="module-doggmentator.trainer.run_pipeline">
-<span id="doggmentator-trainer-run-pipeline-module"></span><h2>doggmentator.trainer.run_pipeline module<a class="headerlink" href="#module-doggmentator.trainer.run_pipeline" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="doggmentator-trainer-run-pipeline-module">
+<h2>doggmentator.trainer.run_pipeline module<a class="headerlink" href="#doggmentator-trainer-run-pipeline-module" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-doggmentator.trainer.train">
 <span id="doggmentator-trainer-train-module"></span><h2>doggmentator.trainer.train module<a class="headerlink" href="#module-doggmentator.trainer.train" title="Permalink to this headline">¶</a></h2>
@@ -360,9 +360,33 @@
 </dd></dl>
 
 <dl class="py method">
+<dt id="doggmentator.trainer.train.Trainer.adv_evaluate">
+<code class="sig-name descname">adv_evaluate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">prefix</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">args</span></em>, <em class="sig-param"><span class="n">tokenizer</span></em>, <em class="sig-param"><span class="n">dataset</span></em>, <em class="sig-param"><span class="n">examples</span></em>, <em class="sig-param"><span class="n">features</span></em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="headerlink" href="#doggmentator.trainer.train.Trainer.adv_evaluate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs PGD attack on each example in the evaluation dataset, recording aggregate metrics</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prefix</strong> (<em>str</em>) – The model to be used for training</p></li>
+<li><p><strong>args</strong> – </p></li>
+<li><p><strong>tokenizer</strong> – The tokenizer used to preprocess the data.</p></li>
+<li><p><strong>dataset</strong> (<em>List</em><em>(</em><em>torch.utils.data.TensorDataset</em><em>)</em>) – The evaluation dataset</p></li>
+<li><p><strong>examples</strong> (<em>List</em><em>(</em><em>torch.utils.data.TensorDataset</em><em>)</em>) – The examples in the evaluation dataset</p></li>
+<li><p><strong>features</strong> (<em>List</em><em>(</em><em>torch.utils.data.TensorDataset</em><em>)</em>) – SQuAD-like features corresponding to the evalaution dataset</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The evaluation metrics (Exact Match (EM) and F1-score)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="id0">
-<code class="sig-name descname">evaluate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">prefix</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">args</span></em>, <em class="sig-param"><span class="n">tokenizer</span></em>, <em class="sig-param"><span class="n">dataset</span></em>, <em class="sig-param"><span class="n">examples</span></em>, <em class="sig-param"><span class="n">features</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
-<dd><p>Performs the evaluation on the dataset</p>
+<code class="sig-name descname">evaluate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">prefix</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">args</span></em>, <em class="sig-param"><span class="n">tokenizer</span></em>, <em class="sig-param"><span class="n">dataset</span></em>, <em class="sig-param"><span class="n">examples</span></em>, <em class="sig-param"><span class="n">features</span></em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs evaluation on the dataset</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -441,11 +465,6 @@ see <a class="reference external" href="https://www.comet.ml/docs/python-sdk/adv
 </dd></dl>
 
 <dl class="py function">
-<dt id="doggmentator.trainer.train.project">
-<code class="sig-prename descclassname">doggmentator.trainer.train.</code><code class="sig-name descname">project</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">X</span></em>, <em class="sig-param"><span class="n">eps</span></em>, <em class="sig-param"><span class="n">order</span><span class="o">=</span><span class="default_value">'inf'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.train.project" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
 <dt id="doggmentator.trainer.train.tensor_to_list">
 <code class="sig-prename descclassname">doggmentator.trainer.train.</code><code class="sig-name descname">tensor_to_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tensor</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.train.tensor_to_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert a Tensor to List</p>
@@ -456,13 +475,25 @@ see <a class="reference external" href="https://www.comet.ml/docs/python-sdk/adv
 <span id="doggmentator-trainer-utils-module"></span><h2>doggmentator.trainer.utils module<a class="headerlink" href="#module-doggmentator.trainer.utils" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
 <dt id="doggmentator.trainer.utils.build_flow">
-<code class="sig-prename descclassname">doggmentator.trainer.utils.</code><code class="sig-name descname">build_flow</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">args</span></em>, <em class="sig-param"><span class="n">label</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'default-train'</span></em>, <em class="sig-param"><span class="n">model</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tokenizer</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">train_dataset</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.utils.build_flow" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="doggmentator.trainer.utils.is_apex_available">
-<code class="sig-prename descclassname">doggmentator.trainer.utils.</code><code class="sig-name descname">is_apex_available</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.utils.is_apex_available" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="sig-prename descclassname">doggmentator.trainer.utils.</code><code class="sig-name descname">build_flow</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">args</span></em>, <em class="sig-param"><span class="n">label</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'default'</span></em>, <em class="sig-param"><span class="n">model</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tokenizer</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">train_dataset</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; prefect.core.flow.Flow<a class="headerlink" href="#doggmentator.trainer.utils.build_flow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs a Prefect flow composed of sequential modeling steps</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>label</strong> (<em>Optional</em><em>(</em><em>str</em><em>)</em>) – The unique tag used to identify the Flow instance. The default value is ‘default’</p></li>
+<li><p><strong>model</strong> (<em>Optional</em><em>(</em><em>transformers.PreTrainedModel</em><em>)</em>) – The pre-trained Transformer model. This parameter is required for training. The default value is None.</p></li>
+<li><p><strong>tokenizer</strong> (<em>Optional</em><em>(</em><em>transformers.PreTrainedTokenizer</em><em>)</em>) – The tokenizer used to preprocess the data for the model.</p></li>
+<li><p><strong>train_dataset</strong> (<em>torch.utils.data.TensorDataset</em>) – The training dataset. This parameter is required for training. The default value is None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A prefect Flow object contained the specified steps and parameters</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Flow object</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt id="doggmentator.trainer.utils.load_and_cache_examples">
@@ -474,11 +505,11 @@ see <a class="reference external" href="https://www.comet.ml/docs/python-sdk/adv
 <li><p><strong>args</strong> (<a class="reference internal" href="#doggmentator.trainer.arguments.ModelArguments" title="doggmentator.trainer.arguments.ModelArguments"><em>doggmentator.trainer.arguments.ModelArguments</em></a>) – <p>A set of arguments related to the model. Specifically, the following arguments are used in this function:
 - args.train_file_path : str</p>
 <blockquote>
-<div><p>Path to the training data files</p>
+<div><p>Path to the training data file</p>
 </div></blockquote>
 <ul>
 <li><dl class="simple">
-<dt>args.do_aug<span class="classifier">bool</span></dt><dd><p>Boolean variable to clarify whether the augmented training is to be used.</p>
+<dt>args.do_aug<span class="classifier">bool</span></dt><dd><p>Flag to specify whether to use the augmented training set. If True, will be merged with the original training set specified in train_file_path. The default value is False.</p>
 </dd>
 </dl>
 </li>
@@ -498,7 +529,7 @@ see <a class="reference external" href="https://www.comet.ml/docs/python-sdk/adv
 </dl>
 </li>
 <li><dl class="simple">
-<dt>args.max_seq_length<span class="classifier">Optional[int]</span></dt><dd><p>Max length for the input tokens</p>
+<dt>args.max_seq_length<span class="classifier">Optional[int]</span></dt><dd><p>Max length for the input tokens, specified to the Transformer model defined in <cite>model_name_or_path</cite></p>
 </dd>
 </dl>
 </li>
@@ -508,34 +539,38 @@ see <a class="reference external" href="https://www.comet.ml/docs/python-sdk/adv
 </dl>
 </li>
 <li><dl class="simple">
-<dt>args.predict_file_path<span class="classifier">Dict[str, str]</span></dt><dd><p>Paths for cached eval datasets</p>
+<dt>args.predict_file_path<span class="classifier">Dict[str, str]</span></dt><dd><p>Paths for eval datasets, where the key is the data file tag, and the value is the data file path. Multiple file paths may be given for evaluation, and each will be cached and loaded separately.</p>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt>args.version_2_with_negative<span class="classifier">Bool</span></dt><dd><p>SQuAD v2.0 training</p>
+<dt>args.version_2_with_negative<span class="classifier">Bool</span></dt><dd><p>Flag that specifies to use the SQuAD v2.0 preprocessors. The default value is False.</p>
 </dd>
 </dl>
 </li>
-<li><p>args.doc_stride : Optional[int]</p></li>
 <li><dl class="simple">
-<dt>args.max_query_length<span class="classifier">Optional[int]</span></dt><dd><p>Max length for the query segment</p>
+<dt>args.doc_stride<span class="classifier">Optional[int]</span></dt><dd><p>Corresponds to the doc_stride input param for some Huggingface Transformer models.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>args.max_query_length<span class="classifier">Optional[int]</span></dt><dd><p>Max length for the query segment in the Transformer model input.</p>
 </dd>
 </dl>
 </li>
 </ul>
 </p></li>
-<li><p><strong>tokenizer</strong> – The tokenizer used to preprocess the data.</p></li>
-<li><p><strong>evaluate</strong> (<em>Bool</em>) – A boolean variabla describing whether this is an evaluation or training dataset.</p></li>
-<li><p><strong>use_aug_path</strong> (<em>Bool</em>) – A boolean variable to clarify whether a augemented data path is given. If it is given, the augmented data path is used loading and caching the data.</p></li>
-<li><p><strong>output_examples</strong> (<em>Bool</em>) – a boolean variable to clarify whether the examples and the features should also given as an output. If False, the function only returns the dataset.</p></li>
+<li><p><strong>tokenizer</strong> – The Transformer model tokenizer used to preprocess the data.</p></li>
+<li><p><strong>evaluate</strong> (<em>Optional</em><em>(</em><em>Bool</em><em>)</em>) – A flag to set the trainer task to either train or evaluate. The default value is False.</p></li>
+<li><p><strong>use_aug_path</strong> (<em>Optional</em><em>(</em><em>Bool</em><em>)</em>) – A flag to define whether to use the aug_file_path or the train_file_path. If True, the augmented data path is used when loading and caching the data.</p></li>
+<li><p><strong>output_examples</strong> (<em>Optional</em><em>(</em><em>Bool</em><em>)</em>) – A flag to define whether the examples and features should be returned by the data preprocessor. If False, the preprocessor only returns the dataset. This is necessary if the Trainer is used for evaluation or in a pipeline where training is followed by evaluation.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The dataset containing the data to be used for training or evaluation.
 Important Notes:
 - If the output_examples is True, examples and features also are returned.
-- If evaluate = True, the output will be a dictionary for which the keys are the name of the datasets used for evaluation and the values are the dataset (and optionally the examples and features)</p>
+- If evaluate = True, the output will be a dictionary for which the keys are the name of the datasets used for evaluation and the values are the dataset (and optionally the examples and features).</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>torch.utils.data.TensorDataset</p>
