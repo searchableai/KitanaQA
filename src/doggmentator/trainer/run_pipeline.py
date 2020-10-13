@@ -19,7 +19,7 @@ from transformers import (
 )
 
 from doggmentator.trainer.arguments import ModelArguments
-from doggmentator.trainer.utils import set_seed, load_and_cache_examples, post_to_slack, build_flow
+from doggmentator.trainer.utils import load_and_cache_examples, post_to_slack, build_flow
 from transformers.file_utils import is_apex_available
 
 from doggmentator import get_logger
