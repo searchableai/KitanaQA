@@ -84,7 +84,7 @@ class SQuADDataset(Dataset):
     def __init__(
                 self,
                 raw_examples: Dict,
-                custom_importance_scores: Dict=None
+                custom_importance_scores: Dict=None,
                 is_training: bool=False,
                 sample_ratio: float=4.,
                 num_replacements: int=2,
@@ -98,7 +98,7 @@ class SQuADDataset(Dataset):
                 out_prefix: str=None,
                 verbose: bool=False,
                 dataset: Dict = None):
-        """ Dataset class to generate perturbations of SQuAD-like data """
+        """ Dataset class to generate perturbations of SQuAD-like data
         ...
         Methods
         ----------
@@ -210,7 +210,7 @@ class SQuADDataset(Dataset):
                 json.dump(new_squad_examples, f)
 
     def generate(self):
-        """ Generate perturbations for the raw SQuAD-like examples """
+        """ Generate perturbations for the raw SQuAD-like examples
         Parameters
         ----------
         term : str

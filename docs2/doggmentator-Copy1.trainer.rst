@@ -4,6 +4,14 @@ doggmentator.trainer package
 Submodules
 ----------
 
+doggmentator.trainer.alum\_squad\_processor module
+--------------------------------------------------
+
+.. automodule:: doggmentator.trainer.alum_squad_processor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 doggmentator.trainer.arguments module
 -------------------------------------
 
@@ -24,6 +32,14 @@ doggmentator.trainer.run\_pipeline module
 -----------------------------------------
 
 .. automodule:: doggmentator.trainer.run_pipeline
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+doggmentator.trainer.squad\_metrics module
+------------------------------------------
+
+.. automodule:: doggmentator.trainer.squad_metrics
    :members:
    :undoc-members:
    :show-inheritance:
