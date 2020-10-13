@@ -153,6 +153,112 @@
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 </div>
+<div class="section" id="module-doggmentator.trainer.alum_squad_processor">
+<span id="doggmentator-trainer-alum-squad-processor-module"></span><h2>doggmentator.trainer.alum_squad_processor module<a class="headerlink" href="#module-doggmentator.trainer.alum_squad_processor" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="doggmentator.trainer.alum_squad_processor.AlumSquadProcessor">
+<em class="property">class </em><code class="sig-prename descclassname">doggmentator.trainer.alum_squad_processor.</code><code class="sig-name descname">AlumSquadProcessor</code><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.AlumSquadProcessor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">transformers.data.processors.utils.DataProcessor</span></code></p>
+<p>Processor for the SQuAD data set.
+Overriden by SquadV1Processor and SquadV2Processor, used by the version 1.1 and version 2.0 of SQuAD, respectively.</p>
+<dl class="py method">
+<dt id="doggmentator.trainer.alum_squad_processor.AlumSquadProcessor.alum_get_dev_examples">
+<code class="sig-name descname">alum_get_dev_examples</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_dir</span></em>, <em class="sig-param"><span class="n">filename</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.AlumSquadProcessor.alum_get_dev_examples" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the training examples from the data directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_dir</strong> – Directory containing the data files used for training and evaluating.</p></li>
+<li><p><strong>filename</strong> – None by default, specify this if the training file has a different name than the original one
+which is <cite>train-v1.1.json</cite> and <cite>train-v2.0.json</cite> for squad versions 1.1 and 2.0 respectively.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="doggmentator.trainer.alum_squad_processor.AlumSquadProcessor.dev_file">
+<code class="sig-name descname">dev_file</code><em class="property"> = None</em><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.AlumSquadProcessor.dev_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="doggmentator.trainer.alum_squad_processor.AlumSquadProcessor.train_file">
+<code class="sig-name descname">train_file</code><em class="property"> = None</em><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.AlumSquadProcessor.train_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="doggmentator.trainer.alum_squad_processor.AlumSquadV1Processor">
+<em class="property">class </em><code class="sig-prename descclassname">doggmentator.trainer.alum_squad_processor.</code><code class="sig-name descname">AlumSquadV1Processor</code><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.AlumSquadV1Processor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="doggmentator.trainer.html#doggmentator.trainer.alum_squad_processor.AlumSquadProcessor" title="doggmentator.trainer.alum_squad_processor.AlumSquadProcessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">doggmentator.trainer.alum_squad_processor.AlumSquadProcessor</span></code></a></p>
+<dl class="py attribute">
+<dt id="doggmentator.trainer.alum_squad_processor.AlumSquadV1Processor.dev_file">
+<code class="sig-name descname">dev_file</code><em class="property"> = 'dev-v1.1.json'</em><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.AlumSquadV1Processor.dev_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="doggmentator.trainer.alum_squad_processor.AlumSquadV1Processor.train_file">
+<code class="sig-name descname">train_file</code><em class="property"> = 'train-v1.1.json'</em><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.AlumSquadV1Processor.train_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="doggmentator.trainer.alum_squad_processor.AlumSquadV2Processor">
+<em class="property">class </em><code class="sig-prename descclassname">doggmentator.trainer.alum_squad_processor.</code><code class="sig-name descname">AlumSquadV2Processor</code><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.AlumSquadV2Processor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="doggmentator.trainer.html#doggmentator.trainer.alum_squad_processor.AlumSquadProcessor" title="doggmentator.trainer.alum_squad_processor.AlumSquadProcessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">doggmentator.trainer.alum_squad_processor.AlumSquadProcessor</span></code></a></p>
+<dl class="py attribute">
+<dt id="doggmentator.trainer.alum_squad_processor.AlumSquadV2Processor.dev_file">
+<code class="sig-name descname">dev_file</code><em class="property"> = 'dev-v2.0.json'</em><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.AlumSquadV2Processor.dev_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="doggmentator.trainer.alum_squad_processor.AlumSquadV2Processor.train_file">
+<code class="sig-name descname">train_file</code><em class="property"> = 'train-v2.0.json'</em><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.AlumSquadV2Processor.train_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.alum_squad_processor.alum_squad_convert_examples_to_features">
+<code class="sig-prename descclassname">doggmentator.trainer.alum_squad_processor.</code><code class="sig-name descname">alum_squad_convert_examples_to_features</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">examples</span></em>, <em class="sig-param"><span class="n">tokenizer</span></em>, <em class="sig-param"><span class="n">max_seq_length</span></em>, <em class="sig-param"><span class="n">doc_stride</span></em>, <em class="sig-param"><span class="n">max_query_length</span></em>, <em class="sig-param"><span class="n">padding_strategy</span><span class="o">=</span><span class="default_value">'max_length'</span></em>, <em class="sig-param"><span class="n">return_dataset</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">threads</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">tqdm_enabled</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.alum_squad_processor.alum_squad_convert_examples_to_features" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a list of examples into a list of features that can be directly given as input to a model.
+It is model-dependant and takes advantage of many of the tokenizer’s features to create the model’s inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>examples</strong> – list of <code class="xref py py-class docutils literal notranslate"><span class="pre">SquadExample</span></code></p></li>
+<li><p><strong>tokenizer</strong> – an instance of a child of <code class="xref py py-class docutils literal notranslate"><span class="pre">PreTrainedTokenizer</span></code></p></li>
+<li><p><strong>max_seq_length</strong> – The maximum sequence length of the inputs.</p></li>
+<li><p><strong>doc_stride</strong> – The stride used when the context is too large and is split across several features.</p></li>
+<li><p><strong>max_query_length</strong> – The maximum length of the query.</p></li>
+<li><p><strong>padding_strategy</strong> – Default to “max_length”. Which padding strategy to use</p></li>
+<li><p><strong>return_dataset</strong> – Default False. Optional ‘pt’
+if ‘pt’: returns a torch.data.TensorDataset,</p></li>
+<li><p><strong>threads</strong> – multiple processing threadsa-smi</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of <code class="xref py py-class docutils literal notranslate"><span class="pre">SquadFeatures</span></code></p>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">processor</span> <span class="o">=</span> <span class="n">SquadV2Processor</span><span class="p">()</span>
+<span class="n">examples</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">alum_get_dev_examples</span><span class="p">(</span><span class="n">data_dir</span><span class="p">)</span>
+
+<span class="n">features</span> <span class="o">=</span> <span class="n">squad_convert_examples_to_features</span><span class="p">(</span>
+    <span class="n">examples</span><span class="o">=</span><span class="n">examples</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">max_seq_length</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">max_seq_length</span><span class="p">,</span>
+    <span class="n">doc_stride</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">doc_stride</span><span class="p">,</span>
+    <span class="n">max_query_length</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">max_query_length</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
 <div class="section" id="module-doggmentator.trainer.arguments">
 <span id="doggmentator-trainer-arguments-module"></span><h2>doggmentator.trainer.arguments module<a class="headerlink" href="#module-doggmentator.trainer.arguments" title="Permalink to this headline">¶</a></h2>
 <dl class="py class">
@@ -337,6 +443,95 @@
 </div>
 <div class="section" id="doggmentator-trainer-run-pipeline-module">
 <h2>doggmentator.trainer.run_pipeline module<a class="headerlink" href="#doggmentator-trainer-run-pipeline-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-doggmentator.trainer.squad_metrics">
+<span id="doggmentator-trainer-squad-metrics-module"></span><h2>doggmentator.trainer.squad_metrics module<a class="headerlink" href="#module-doggmentator.trainer.squad_metrics" title="Permalink to this headline">¶</a></h2>
+<p>Adapted from the official Huggingface squad_metrics script, which was in turn
+adapted from the official evaluation script for SQuAD version 2.0 which was
+modified by XLNet authors to update <cite>find_best_threshold</cite> scripts for SQuAD V2.0</p>
+<p>In addition to basic functionality, we also compute additional statistics and
+plot precision-recall curves if an additional na_prob.json file is provided.
+This file is expected to map question ID’s to the model’s predicted probability
+that a question is unanswerable.</p>
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.apply_no_ans_threshold">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">apply_no_ans_threshold</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scores</span></em>, <em class="sig-param"><span class="n">na_probs</span></em>, <em class="sig-param"><span class="n">qid_to_has_ans</span></em>, <em class="sig-param"><span class="n">na_prob_thresh</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.apply_no_ans_threshold" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.compute_exact">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">compute_exact</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a_gold</span></em>, <em class="sig-param"><span class="n">a_pred</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.compute_exact" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.compute_f1">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">compute_f1</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a_gold</span></em>, <em class="sig-param"><span class="n">a_pred</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.compute_f1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.compute_predictions_logits">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">compute_predictions_logits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">all_examples</span><span class="p">:</span> <span class="n">List</span></em>, <em class="sig-param"><span class="n">all_features</span><span class="p">:</span> <span class="n">List</span></em>, <em class="sig-param"><span class="n">all_results</span><span class="p">:</span> <span class="n">List</span></em>, <em class="sig-param"><span class="n">n_best_size</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">max_answer_length</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">do_lower_case</span><span class="p">:</span> <span class="n">bool</span></em>, <em class="sig-param"><span class="n">verbose_logging</span><span class="p">:</span> <span class="n">bool</span></em>, <em class="sig-param"><span class="n">version_2_with_negative</span><span class="p">:</span> <span class="n">bool</span></em>, <em class="sig-param"><span class="n">null_score_diff_threshold</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">tokenizer</span><span class="p">:</span> <span class="n">transformers.tokenization_bert.BasicTokenizer</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.compute_predictions_logits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write final predictions to the json file and log-odds of null if needed.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.find_all_best_thresh">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">find_all_best_thresh</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">main_eval</span></em>, <em class="sig-param"><span class="n">preds</span></em>, <em class="sig-param"><span class="n">exact_raw</span></em>, <em class="sig-param"><span class="n">f1_raw</span></em>, <em class="sig-param"><span class="n">na_probs</span></em>, <em class="sig-param"><span class="n">qid_to_has_ans</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.find_all_best_thresh" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.find_all_best_thresh_v2">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">find_all_best_thresh_v2</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">main_eval</span></em>, <em class="sig-param"><span class="n">preds</span></em>, <em class="sig-param"><span class="n">exact_raw</span></em>, <em class="sig-param"><span class="n">f1_raw</span></em>, <em class="sig-param"><span class="n">na_probs</span></em>, <em class="sig-param"><span class="n">qid_to_has_ans</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.find_all_best_thresh_v2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.find_best_thresh">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">find_best_thresh</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">preds</span></em>, <em class="sig-param"><span class="n">scores</span></em>, <em class="sig-param"><span class="n">na_probs</span></em>, <em class="sig-param"><span class="n">qid_to_has_ans</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.find_best_thresh" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.find_best_thresh_v2">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">find_best_thresh_v2</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">preds</span></em>, <em class="sig-param"><span class="n">scores</span></em>, <em class="sig-param"><span class="n">na_probs</span></em>, <em class="sig-param"><span class="n">qid_to_has_ans</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.find_best_thresh_v2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.get_final_text">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">get_final_text</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pred_text</span></em>, <em class="sig-param"><span class="n">orig_text</span></em>, <em class="sig-param"><span class="n">do_lower_case</span></em>, <em class="sig-param"><span class="n">verbose_logging</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.get_final_text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Project the tokenized prediction back to the original text.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.get_raw_scores">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">get_raw_scores</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">examples</span></em>, <em class="sig-param"><span class="n">preds</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.get_raw_scores" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the exact and f1 scores from the examples and the model predictions</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.get_tokens">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">get_tokens</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">s</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.get_tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.make_eval_dict">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">make_eval_dict</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">exact_scores</span></em>, <em class="sig-param"><span class="n">f1_scores</span></em>, <em class="sig-param"><span class="n">qid_list</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.make_eval_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.merge_eval">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">merge_eval</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">main_eval</span></em>, <em class="sig-param"><span class="n">new_eval</span></em>, <em class="sig-param"><span class="n">prefix</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.merge_eval" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.normalize_answer">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">normalize_answer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">s</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.normalize_answer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lower text and remove punctuation, articles and extra whitespace.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="doggmentator.trainer.squad_metrics.squad_evaluate">
+<code class="sig-prename descclassname">doggmentator.trainer.squad_metrics.</code><code class="sig-name descname">squad_evaluate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">examples</span></em>, <em class="sig-param"><span class="n">preds</span></em>, <em class="sig-param"><span class="n">no_answer_probs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">no_answer_probability_threshold</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.trainer.squad_metrics.squad_evaluate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </div>
 <div class="section" id="module-doggmentator.trainer.train">
 <span id="doggmentator-trainer-train-module"></span><h2>doggmentator.trainer.train module<a class="headerlink" href="#module-doggmentator.trainer.train" title="Permalink to this headline">¶</a></h2>
