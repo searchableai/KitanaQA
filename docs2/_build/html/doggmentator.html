@@ -172,7 +172,7 @@
 <li class="toctree-l1"><a class="reference internal" href="doggmentator.trainer.html">doggmentator.trainer package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="doggmentator.trainer.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="doggmentator.trainer.html#module-doggmentator.trainer.arguments">doggmentator.trainer.arguments module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="doggmentator.trainer.html#module-doggmentator.trainer.run_pipeline">doggmentator.trainer.run_pipeline module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="doggmentator.trainer.html#doggmentator-trainer-run-pipeline-module">doggmentator.trainer.run_pipeline module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="doggmentator.trainer.html#module-doggmentator.trainer.train">doggmentator.trainer.train module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="doggmentator.trainer.html#module-doggmentator.trainer.utils">doggmentator.trainer.utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="doggmentator.trainer.html#module-doggmentator.trainer">Module contents</a></li>
@@ -197,28 +197,84 @@
 </dd></dl>
 
 <dl class="py class">
+<dt id="doggmentator.generators.MLMSynonymReplace">
+<em class="property">class </em><code class="sig-prename descclassname">doggmentator.generators.</code><code class="sig-name descname">MLMSynonymReplace</code><a class="headerlink" href="#doggmentator.generators.MLMSynonymReplace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="doggmentator-Copy1.html#doggmentator.generators.BaseGenerator" title="doggmentator.generators.BaseGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">doggmentator.generators.BaseGenerator</span></code></a></p>
+<p>A class to replace synonyms using a masked language model (MLM)
+…
+.. method:: generate(term, num_target, toks, token_idx)</p>
+<blockquote>
+<div><p>Generate misspellings for an input term</p>
+</div></blockquote>
+<dl class="py method">
+<dt id="doggmentator.generators.MLMSynonymReplace.generate">
+<code class="sig-name descname">generate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">term</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">num_target</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span> &#x2192; List<a class="headerlink" href="#doggmentator.generators.MLMSynonymReplace.generate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a certain number of synonyms using an MLM.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>term</strong> (<em>str</em>) – The input term for which we are looking for misspellings.</p></li>
+<li><p><strong>num_target</strong> (<em>int</em>) – The target number of synonyms to generate for the input term. The number should be greater than 0</p></li>
+<li><p><strong>kwargs</strong> (<em>Dict</em>) – <ul>
+<li><dl class="simple">
+<dt>toks<span class="classifier">List</span></dt><dd><p>The tokenized source string containing the target term.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>token_idx<span class="classifier">int</span></dt><dd><p>The index of the target string in the tokenized source string</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Returns a list of synonyms if any. Otherwise an empty list</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[str]</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">generators</span> <span class="kn">import</span> <span class="n">MLMSynonymReplace</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mr</span> <span class="o">=</span> <span class="n">MLMSynonymReplace</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">term</span> <span class="o">=</span> <span class="s2">&quot;small&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">toks</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;was&#39;</span><span class="p">,</span> <span class="s1">&#39;born&#39;</span><span class="p">,</span> <span class="s1">&#39;in&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;small&#39;</span><span class="p">,</span> <span class="s1">&#39;town&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">token_idx</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">num_target</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mr</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="n">term</span><span class="p">,</span> <span class="n">num_target</span><span class="o">=</span><span class="n">num_target</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;toks&#39;</span><span class="p">:</span><span class="n">toks</span><span class="p">,</span> <span class="s1">&#39;token_idx&#39;</span><span class="p">:</span><span class="n">token_idx</span><span class="p">})</span>
+<span class="go">[&#39;little&#39;, &#39;mining&#39;]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="doggmentator.generators.MisspReplace">
 <em class="property">class </em><code class="sig-prename descclassname">doggmentator.generators.</code><code class="sig-name descname">MisspReplace</code><a class="headerlink" href="#doggmentator.generators.MisspReplace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="doggmentator-Copy1.html#doggmentator.generators.BaseGenerator" title="doggmentator.generators.BaseGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">doggmentator.generators.BaseGenerator</span></code></a></p>
 <p>A class to replace commonly misspelled terms
 …
-.. method:: generate(term, num_missp)</p>
+.. method:: generate(term, num_target)</p>
 <blockquote>
 <div><p>Generate misspellings for an input term</p>
 </div></blockquote>
 <dl class="py method">
 <dt id="doggmentator.generators.MisspReplace.generate">
-<code class="sig-name descname">generate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">term</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">num_missp</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">10</span></em><span class="sig-paren">)</span> &#x2192; List<a class="headerlink" href="#doggmentator.generators.MisspReplace.generate" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">generate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">term</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">num_target</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span> &#x2192; List<a class="headerlink" href="#doggmentator.generators.MisspReplace.generate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate a certain number of misspellings for the input term.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>term</strong> (<em>str</em>) – The input term for which we are looking for misspellings.</p></li>
-<li><p><strong>num_missp</strong> (<em>Optional</em><em>(</em><em>int</em><em>)</em>) – The number of misspellings for the input term. The number of misspelling should be greater than 1. The default value is 10.</p></li>
+<li><p><strong>num_target</strong> (<em>int</em>) – The target number of misspellings to generate for the input term. The number of misspelling should be greater than 0</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Returns a list of misspelling if there is any misspelling for the input term. Otherwise an empty list</p>
+<dd class="field-even"><p>Returns a list of misspellings if any. Otherwise an empty list</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>[str]</p>
@@ -228,8 +284,8 @@
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">generators</span> <span class="kn">import</span> <span class="n">MisspReplace</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">mr</span> <span class="o">=</span> <span class="n">MisspReplace</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">term</span> <span class="o">=</span> <span class="s2">&quot;worried&quot;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">num_missp</span> <span class="o">=</span> <span class="mi">5</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">mr</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">num_missp</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">num_target</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mr</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="n">term</span><span class="p">,</span> <span class="n">num_target</span><span class="o">=</span><span class="n">num_target</span><span class="p">)</span>
 <span class="go">[&#39;woried&#39;, &#39;worred&#39;]</span>
 </pre></div>
 </div>
@@ -241,26 +297,33 @@
 <dt id="doggmentator.generators.SynonymReplace">
 <em class="property">class </em><code class="sig-prename descclassname">doggmentator.generators.</code><code class="sig-name descname">SynonymReplace</code><a class="headerlink" href="#doggmentator.generators.SynonymReplace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="doggmentator-Copy1.html#doggmentator.generators.BaseGenerator" title="doggmentator.generators.BaseGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">doggmentator.generators.BaseGenerator</span></code></a></p>
-<p>A class to generate synonyms for the input term
+<p>A class to generate synonyms for an input term using word2vec
 …
-.. method:: generate(term, num_syns, similarity_thre)</p>
+.. method:: generate(term, num_targets, {‘similarity_thre’:0.5})</p>
 <blockquote>
 <div><p>Generate synonyms for an input term</p>
 </div></blockquote>
 <dl class="py method">
 <dt id="doggmentator.generators.SynonymReplace.generate">
-<code class="sig-name descname">generate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">term</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">num_syns</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">10</span></em>, <em class="sig-param"><span class="n">similarity_thre</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">0.7</span></em><span class="sig-paren">)</span> &#x2192; List<a class="headerlink" href="#doggmentator.generators.SynonymReplace.generate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate a certain number of synonyms for the input term. Based on the</p>
+<code class="sig-name descname">generate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">term</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">num_target</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span> &#x2192; List<a class="headerlink" href="#doggmentator.generators.SynonymReplace.generate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a certain number of synonyms using a word2vec model</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>term</strong> (<em>str</em>) – The input term for which we are looking for synonyms.</p></li>
-<li><p><strong>num_syns</strong> (<em>Optional</em><em>(</em><em>int</em><em>)</em>) – The number of synonyms for the input term. The number of synonyms should be greater than 1. The default value is 10.</p></li>
-<li><p><strong>similarity_thre</strong> (<em>Optional</em><em>(</em><em>float</em><em>)</em>) – The similarity threshold. The function returns the synonyms with higher similarity than the threshold.</p></li>
+<li><p><strong>term</strong> (<em>str</em>) – The input term for which we are looking for misspellings.</p></li>
+<li><p><strong>num_target</strong> (<em>int</em>) – The target number of synonyms to generate for the input term. The number should be greater than 0</p></li>
+<li><p><strong>kwargs</strong> (<em>Optional</em><em>(</em><em>Dict</em><em>)</em>) – <ul>
+<li><dl class="simple">
+<dt>similarity_thre<span class="classifier">Optional(float)</span></dt><dd><p>Threshold of cosine similarity values in generated terms. The default value is 0.7</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Returns a list of synonyms for the input term.</p>
+<dd class="field-even"><p>Returns a list of synonyms if any. Otherwise an empty list</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>[str]</p>
@@ -268,11 +331,11 @@
 </dl>
 <p class="rubric">Example</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">generators</span> <span class="kn">import</span> <span class="n">SynonymReplace</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">sr</span> <span class="o">=</span> <span class="n">SynonymReplace</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mr</span> <span class="o">=</span> <span class="n">SynonymReplace</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">term</span> <span class="o">=</span> <span class="s2">&quot;worried&quot;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">num_syns</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">num_target</span> <span class="o">=</span> <span class="mi">3</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">similarity_thre</span> <span class="o">=</span> <span class="mf">0.7</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">sr</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">num_syns</span><span class="p">,</span> <span class="n">similarity_thre</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sr</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">num_target</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;similarity_thre&#39;</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">})</span>
 <span class="go">[&#39;apprehensive&#39;, &#39;preoccupied&#39;, &#39;worry&#39;]</span>
 </pre></div>
 </div>
@@ -287,11 +350,41 @@
 <dt id="doggmentator.term_replacement.DropTerms">
 <em class="property">class </em><code class="sig-prename descclassname">doggmentator.term_replacement.</code><code class="sig-name descname">DropTerms</code><a class="headerlink" href="#doggmentator.term_replacement.DropTerms" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Remove terms from a sequence</p>
+<p>A class to generate sentence perturbations by dropping target terms
+…
+.. method:: drop_terms(sentence, num_terms, num_output_sents)</p>
+<blockquote>
+<div><p>Generate synonyms for an input term</p>
+</div></blockquote>
 <dl class="py method">
 <dt id="doggmentator.term_replacement.DropTerms.drop_terms">
 <code class="sig-name descname">drop_terms</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sentence</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">num_terms</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="n">num_output_sents</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em><span class="sig-paren">)</span> &#x2192; List<a class="headerlink" href="#doggmentator.term_replacement.DropTerms.drop_terms" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate list of strings by randomly dropping terms</p>
+<dd><p>Generate a certain number of sentence perturbations by dropping select terms</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sentence</strong> (<em>str</em>) – The input sentence to be perturbed.</p></li>
+<li><p><strong>num_terms</strong> (<em>Optional</em><em>(</em><em>int</em><em>)</em>) – The number of terms to target in the original sentence, with this perturbation. The number should be greater than 0. The default value is 1.</p></li>
+<li><p><strong>num_output_sents</strong> (<em>Optional</em><em>(</em><em>int</em><em>)</em>) – The number of perturbed sentences to produce. The number should be greater than 0. The default is 1.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Returns a list of perturbed sentences for the input sentence.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[str]</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">term_replacement</span> <span class="kn">import</span> <span class="n">DropTerms</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">DropTerms</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">term</span> <span class="o">=</span> <span class="s2">&quot;I was born in a small town&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">num_terms</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">num_output_sents</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">num_terms</span><span class="p">,</span> <span class="n">num_output_sents</span><span class="p">)</span>
+<span class="go">[&#39;I born in a small town&#39;]</span>
+</pre></div>
+</div>
 </dd></dl>
 
 </dd></dl>
@@ -300,11 +393,44 @@
 <dt id="doggmentator.term_replacement.ReplaceTerms">
 <em class="property">class </em><code class="sig-prename descclassname">doggmentator.term_replacement.</code><code class="sig-name descname">ReplaceTerms</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rep_type</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'synonym'</span></em>, <em class="sig-param"><span class="n">use_ner</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#doggmentator.term_replacement.ReplaceTerms" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Generate sentence variants using term replacement strategies</p>
+<p>A class to generate sentence perturbations by replacement
+…
+.. method:: replace_terms(sentence, importance_scores, num_replacements, num_output_sents, sampling_strategy, sampling_k)</p>
+<blockquote>
+<div><p>Generate synonyms for an input term</p>
+</div></blockquote>
 <dl class="py method">
 <dt id="doggmentator.term_replacement.ReplaceTerms.replace_terms">
 <code class="sig-name descname">replace_terms</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sentence</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">importance_scores</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">num_replacements</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="n">num_output_sents</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="n">sampling_strategy</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'random'</span></em>, <em class="sig-param"><span class="n">sampling_k</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; List<a class="headerlink" href="#doggmentator.term_replacement.ReplaceTerms.replace_terms" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate list of strings by replacing specified number of terms with their synonyms</p>
+<dd><p>Generate a certain number of sentence perturbations by replacement using either misspelling or synonyms</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sentence</strong> (<em>str</em>) – The input sentence to be perturbed.</p></li>
+<li><p><strong>importance_scores</strong> (<em>Optional</em><em>(</em><em>List</em><em>)</em>) – List of tuples defining a weight for each term in the tokenized sentence. These weights are used during sampling to influence perturnation probabilities. If None, uniform sampling is used by default.</p></li>
+<li><p><strong>num_replacements</strong> (<em>Optional</em><em>(</em><em>int</em><em>)</em>) – Target number of terms to replace in the original sentence. The number is chosen randomly using the target as an upper bound, and lower bound of 1. The default is 1.</p></li>
+<li><p><strong>num_output_sents</strong> (<em>Optional</em><em>(</em><em>int</em><em>)</em>) – Target number of perturbed sentences to generate based on the original sentence. The default is 1.</p></li>
+<li><p><strong>sampling_strategy</strong> (<em>Optional</em><em>(</em><em>str</em><em>)</em>) – Strategy used to sample terms to perturb in the original sentence. The default is random. If importance_scores is given, then sampling_strategy may be <cite>topK</cite> or <cite>bottomK</cite>, in which case the importance_scores (or inverted scores) vector is used for weighted sampling.</p></li>
+<li><p><strong>sampling_k</strong> (<em>Optional</em><em>(</em><em>int</em><em>)</em>) – The number of terms in the importance score vector to include in topK or bottomK sampling. This parameter is not used by the default sampling_strategy, <cite>random</cite> sampling.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Returns a list of perturbed sentences for the input sentence.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[str]</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">term_replacement</span> <span class="kn">import</span> <span class="n">DropTerms</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">DropTerms</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">term</span> <span class="o">=</span> <span class="s2">&quot;I was born in a small town&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">num_terms</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">num_output_sents</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">num_terms</span><span class="p">,</span> <span class="n">num_output_sents</span><span class="p">)</span>
+<span class="go">[&#39;I born in a small town&#39;]</span>
+</pre></div>
+</div>
 </dd></dl>
 
 </dd></dl>
