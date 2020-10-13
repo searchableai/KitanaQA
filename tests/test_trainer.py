@@ -243,7 +243,6 @@ def test_alum_train():
         del trainer
         gc.collect()
 
-'''
 def _test_alum_eval():
         hparams = {
             "model_type" : "distilbert",
@@ -274,7 +273,6 @@ def _test_alum_eval():
         }
         trainer = TrainerTester(**hparams)
         trainer._eval_alum_and_check_results()
-'''
 
 
 def test_regular_train():
