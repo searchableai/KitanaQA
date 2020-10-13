@@ -1,7 +1,7 @@
 import pytest
 import unittest
-from doggmentator.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms
-from doggmentator.generators import BaseGenerator, MisspReplace, SynonymReplace, MLMSynonymReplace
+from doggmentator.augment.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms
+from doggmentator.augment.generators import BaseGenerator, MisspReplace, SynonymReplace, MLMSynonymReplace
 
 class TestGenerators(unittest.TestCase):
     def test_valid_input(self):
