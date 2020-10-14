@@ -1,7 +1,7 @@
 import pytest
 import unittest
-from doggmentator.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms
-from doggmentator.generators import BaseGenerator, MisspReplace, SynonymReplace, _wordnet_syns
+from doggmentator.augment.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms
+from doggmentator.augment.generators import BaseGenerator, MisspReplace, SynonymReplace, MLMSynonymReplace
 
 class TestGenerators(unittest.TestCase):
     def test_valid_input(self):
@@ -30,7 +30,15 @@ class TestGenerators(unittest.TestCase):
 
     def test_w2v_synonym_generator(self):
         syn_gen = SynonymReplace()
-        synonyms = syn_gen.generate('apple', 3, 0.75)
+        synonyms = syn_gen.generate('apple', 3, **{'similarity_thre': 0.75})
+        assert isinstance(synonyms, list)
+        assert all([isinstance(x, str) for x in synonyms])
+        assert len(synonyms) == 3
+
+    def test_mlm_synonym_generator(self):
+        syn_gen = MLMSynonymReplace()
+        sent = 'I was born in a small town'
+        synonyms = syn_gen.generate('small', 3, **{'toks': sent.split(), 'token_idx': 5})
         assert isinstance(synonyms, list)
         assert all([isinstance(x, str) for x in synonyms])
         assert len(synonyms) == 3

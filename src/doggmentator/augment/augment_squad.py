@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 import math
 from collections import Counter
 from datetime import datetime
-from doggmentator.term_replacement import *
+from doggmentator.augment.term_replacement import *
 from doggmentator import get_logger
 
 
@@ -83,8 +83,8 @@ def format_squad(
 class SQuADDataset(Dataset):
     def __init__(
                 self,
-                raw_examples: List,
-                importance_score_dict: List[tuple]=None,
+                raw_examples: Dict,
+                custom_importance_scores: Dict=None,
                 is_training: bool=False,
                 sample_ratio: float=4.,
                 num_replacements: int=2,
@@ -98,7 +98,38 @@ class SQuADDataset(Dataset):
                 out_prefix: str=None,
                 verbose: bool=False,
                 dataset: Dict = None):
-        """ Instantiate a SQuADDataset instance"""
+        """ Dataset class to generate perturbations of SQuAD-like data
+        ...
+        Methods
+        ----------
+        generate()
+          Generate perturbations for the input dataset using init params.
+
+        Parameters
+        ----------
+        raw_examples : Dict
+            Original examples to perturb. These should minimally match the SQuAD data format. Additional field are ignored.
+        importance_scores : Optional(Dict)
+            Dictionary with keys matching each question ID (qid) value in the original raw_examples. Values are List of Tuples containing (term, weight) pairs for the tokenized input questions.
+        is_training : Optional(bool)
+            Flag defining whether perturbed data will be used for evaluation or training. The default is False. If True, each example of generated SQuAD-like data is also annotated with the `is_impossible` field from the original question (qid).
+        sample_ratio : Optional(float)
+            Target number of examples to generate for each example in the original raw_examples. For example, given value of 1.0, would try to generate one perturbed example for each original example, resulting in a 1:1 ratio of original to perturbed. The default value is 4.
+        num_replacements : Optional(int)
+            Target number of terms to replace in the original sentence when using replacement perturbations. The default value is 2.
+        sampling_k : Optional(int)
+            The number of terms in the importance score vector to include in topK or bottomK sampling. This parameter is not used by the default sampling_strategy, `random` sampling.
+        sampling_strategy : Optional(str)
+            Strategy used to sample terms to perturb in the original sentence. The default is random. If importance_scores is given, then sampling_strategy may be `topK` or `bottomK`, in which case the importance_scores (or inverted scores) vector is used for weighted sampling.
+        p_replace : Optional(float)
+            Sampling probability for the replacement perturbation. If given, will be normalized with all other perturbation sampling probabilities. The default is uniform sampling across all perturbations.
+        p_dropword : Optional(float)
+            Sampling probability for the replacement perturbation. If given, will be normalized with all other perturbation sampling probabilities. The default is uniform sampling across all perturbations.
+        p_misspelling : Optional(float)
+            Sampling probability for the misspelling perturbation. If given, will be normalized with all other perturbation sampling probabilities. The default is uniform sampling across all perturbations.
+        save_freq : Optional(int)
+            A checkpoint file will be saved every save_freq examples in the raw_examples data. The default value is 100.
+        """
 
         if is_training and not out_prefix:
             self.out_prefix = 'train'
@@ -179,7 +210,29 @@ class SQuADDataset(Dataset):
                 json.dump(new_squad_examples, f)
 
     def generate(self):
-        """ Generate augmented examples based on raw SQuAD-like dataset"""
+        """ Generate perturbations for the raw SQuAD-like examples
+        Parameters
+        ----------
+        term : str
+            The input term for which we are looking for synonyms.
+        num_syns : Optional(int)
+            The number of synonyms for the input term. The number of synonyms should be greater than 1. The default value is 10.
+        similarity_thre : Optional(float)
+            The similarity threshold. The function returns the synonyms with higher similarity than the threshold.
+
+        Returns
+        -------
+        None
+
+        Example
+        -------
+        >>> from augment_squad import SQuADDataset
+        >>> with open('support/squad-dev-v1.1.json', 'r') as f:
+        >>>     squad_dev_examples = json.read(f)
+        >>> ds = SQuADDataset(squad_dev_examples, sample_ratio = 0.0001)
+        >>> ds.generate()
+        >>> ds.dataset
+        """
         aug_examples = copy.deepcopy(self.examples)
 
         # Randomly sample indices of data in original dataset with replacement
@@ -221,8 +274,8 @@ class SQuADDataset(Dataset):
             # Used for SQuAD v2.0; not present in v1.1
             is_impossible = raw_data.get('is_impossible', False)
                 
-            if importance_score_dict and qid in self.importance_score_dict:
-                importance_score = importance_score_dict[qid]
+            if importance_scores and qid in self.custom_importance_scores:
+                importance_score = self.custom_importance_scores[qid]
             else:
                 importance_score = None
 

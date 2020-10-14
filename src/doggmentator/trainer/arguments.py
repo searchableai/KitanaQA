@@ -287,6 +287,10 @@ class ModelArguments:
         default=True,
         metadata={"help": "Use Augmented training."}
     )
+    do_adv_eval: bool = field(
+        default=False,
+        metadata={"help": "Perform adversarial attack evaluation."}
+    )
     do_alum: bool = field(
         default=True,
         metadata={"help": "Use ALUM loss."}
