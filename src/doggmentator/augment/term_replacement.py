@@ -175,10 +175,10 @@ class DropTerms():
         -------
         >>> from term_replacement import DropTerms
         >>> p = DropTerms()
-        >>> term = "I was born in a small town"
+        >>> sent = "I was born in a small town"
         >>> num_terms = 3
         >>> num_output_sents = 1
-        >>> p.generate(term, num_terms, num_output_sents)
+        >>> p.generate(sent, num_terms, num_output_sents)
         ['I born small town']
         """
 
@@ -377,13 +377,21 @@ class ReplaceTerms():
 
         Example
         -------
-        >>> from term_replacement import DropTerms
-        >>> p = DropTerms()
-        >>> term = "I was born in a small town"
+        >>> from term_replacement import ReplaceTerms
+        >>> p = ReplaceTerms(rep_type="synonym")
+        >>> sent = "I was born in a small town"
         >>> num_terms = 1
         >>> num_output_sents = 1
-        >>> p.generate(term, num_terms, num_output_sents)
-        ['I born in a small town']
+        >>> p.generate(sent, num_terms, num_output_sents)
+        ['I born in a small village']
+
+        >>> from term_replacement import ReplaceTerms
+        >>> p = ReplaceTerms(rep_type="misspelling")
+        >>> sent = "I was born in a small town"
+        >>> num_terms = 1
+        >>> num_output_sents = 1
+        >>> p.generate(sent, num_terms, num_output_sents)
+        ['I born in a smal town']
         """
 
         inputs = validate_inputs(
