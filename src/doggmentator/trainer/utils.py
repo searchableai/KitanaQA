@@ -288,7 +288,7 @@ def eval_task(args):
             results = {}
             model_idx = checkpoint.split("-")[-1]
             print(f'The checkpoint check: {model_idx}')
-            if model_args.do_alum:
+            if model_args.do_adv_eval:
                 results[model_idx] = {
                                     'model_args': model_args,
                                     'training_args':training_args,
