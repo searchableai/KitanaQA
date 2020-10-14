@@ -245,7 +245,6 @@ def test_alum_train():
         del trainer
         gc.collect()
 
-'''
 def _test_alum_eval():
         hparams = {
             "model_type" : "distilbert",
@@ -257,12 +256,13 @@ def _test_alum_eval():
             "predict_file_path" : {"dev-v1.1": EVAL_PATH},
             "aug_file_path" : None,
             "do_aug" : False,
-            "do_alum" : True,
+            "do_alum" : False,
             "alpha" : 5,
             "eps" : 1e-4,
             "eta" : 1e-5,
             "sigma" : 1e-3,
             "do_train" : False,
+            "do_adv_eval" : True,
             "do_eval" : True,
             "per_device_train_batch_size" : 2,
             "per_device_eval_batch_size" : 1,
@@ -276,7 +276,6 @@ def _test_alum_eval():
         }
         trainer = TrainerTester(**hparams)
         trainer._eval_alum_and_check_results()
-'''
 
 
 def test_regular_train():
