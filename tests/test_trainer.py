@@ -16,8 +16,6 @@ from transformers import (
     HfArgumentParser,
     TrainingArguments,
 )
-from doggmentator.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms
-from doggmentator.generators import BaseGenerator, MisspReplace, SynonymReplace, _wordnet_syns
 from doggmentator.trainer.arguments import ModelArguments
 from doggmentator.trainer.train import Trainer
 from doggmentator.trainer.utils import load_and_cache_examples
