@@ -161,6 +161,7 @@ class SQuADDataset(Dataset):
 
         self.aug_dataset = []
         self.dataset = []
+        self.formatted_dataset = {}
         self.examples = []
         self.title_map = {}
         self.context_map = {}
@@ -357,7 +358,6 @@ class SQuADDataset(Dataset):
             ct += 1
 
         if self.verbose:
-            formatted_aug_dataset = format_squad(self.aug_dataset, self.title_map, self.context_map)
             logger.info('Saving data')
             # Log the original question alongside augmented with type annotation
             with open(self.out_prefix+'_aug_seqs.json', 'w') as f:
@@ -366,6 +366,7 @@ class SQuADDataset(Dataset):
                 json.dump(formatted_aug_dataset, f)
             with open('hparams.json', 'w') as f:
                 json.dump(self.hparams, f)
+        self.formatted_dataset = format_squad(self.aug_dataset, self.title_map, self.context_map)
         self.dataset = self.aug_dataset
 
     def __getitem__(self, index):
@@ -381,8 +382,8 @@ class SQuADDataset(Dataset):
             raise Exception('Please first generate an augmented dataset')
 
     def __call__(self):
-        if self.dataset:
-            return format_squad(self.aug_dataset, self.title_map, self.context_map)
+        if self.formatted_dataset:
+            return self.formatted_dataset
         else:
             return None
 
