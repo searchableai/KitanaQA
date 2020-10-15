@@ -1,5 +1,9 @@
 # Load SQuAD Dataset
+import unittest
+import pkg_resources
+import json
 from transformers.data.processors.squad import SquadResult, SquadV1Processor, SquadV2Processor, squad_convert_examples_to_features
+from doggmentator.augment.augment_squad import SQuADDataset
 
 class AugSquadTester:
     def __init__(
@@ -15,6 +19,7 @@ class AugSquadTester:
             verbose=False):
         self.num_replacements=num_replacements
         self.sample_ratio=sample_ratio
+        self.sampling_strategy=sampling_strategy
         self.sampling_k=sampling_k
         self.is_training = is_training
         self.out_prefix=out_prefix
@@ -26,7 +31,7 @@ class AugSquadTester:
         data_file = pkg_resources.resource_filename(
             'doggmentator', 'support/train-v1.1.json')
         with open(data_file, 'r') as f:
-            data = json.load(f)
+            examples = json.load(f)
 
         hparams = { 
             "num_replacements": self.num_replacements,
@@ -38,22 +43,20 @@ class AugSquadTester:
             "save_freq":        self.save_freq,
             "from_checkpoint":  self.from_checkpoint,
         }
-        self.generator = SQuADDataset(data, **hparams)
-
-    def load_and_check_data(self):
-        self.generator._load_raw_data()
-        assert isinstance(self.examples, List)
-        assert len(self.examples) == 87719
+        self.generator = SQuADDataset(examples, **hparams)
 
     def generate_and_check_results(self):
         self.generator.generate()
-        assert isinstance(self.dataset, List)
-        assert len(generator.dataset) == generator.num_aug_examples
+        assert isinstance(self.generator.dataset, list)
+        assert len(self.generator.dataset) == self.generator.num_aug_examples
+        assert isinstance(self.generator(), dict)
+        assert self.generator() != None
 
-class AugSquadTest:
+
+def test_generate():
     hparams = {
         "num_replacements": 1,
-        "sample_ratio":     0.001,
+        "sample_ratio":     0.0001,
         "sampling_strategy":'topK',
         "sampling_k":       1,
         "is_training":      True,
@@ -61,10 +64,5 @@ class AugSquadTest:
         "save_freq":        1000,
         "from_checkpoint":  False,
     }
-    
-    def load_data(self):
-        self.model_tester = AugSquadTester(**hparams)
-        self.model_test.load_and_check_data()
-
-    def generate(self):
-        self.generator.generate_and_check_results()
+    model_tester = AugSquadTester(**hparams)
+    model_tester.generate_and_check_results()
