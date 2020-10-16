@@ -289,7 +289,7 @@ class SQuADDataset(Dataset):
             else:
                 importance_score = None
 
-            if ct % self.save_freq == 0:
+            if ct % self.save_freq == 0 and ct > 0:
                 logger.info('Generated {} examples'.format(len(self.aug_dataset)))
                 checkpoint = {
                     'aug_freqs':aug_freqs,
