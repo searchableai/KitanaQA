@@ -96,8 +96,7 @@ class SQuADDataset(Dataset):
                 save_freq: int=100,
                 from_checkpoint: bool=False,
                 out_prefix: str=None,
-                verbose: bool=False,
-                dataset: Dict = None):
+                verbose: bool=False):
         """ Dataset class to generate perturbations of SQuAD-like data
         ...
         Methods
@@ -109,7 +108,7 @@ class SQuADDataset(Dataset):
         ----------
         raw_examples : Dict
             Original examples to perturb. These should minimally match the SQuAD data format. Additional field are ignored.
-        importance_scores : Optional(Dict)
+        custom_importance_scores : Optional(Dict)
             Dictionary with keys matching each question ID (qid) value in the original raw_examples. Values are List of Tuples containing (term, weight) pairs for the tokenized input questions.
         is_training : Optional(bool)
             Flag defining whether perturbed data will be used for evaluation or training. The default is False. If True, each example of generated SQuAD-like data is also annotated with the `is_impossible` field from the original question (qid).
@@ -120,7 +119,7 @@ class SQuADDataset(Dataset):
         sampling_k : Optional(int)
             The number of terms in the importance score vector to include in topK or bottomK sampling. This parameter is not used by the default sampling_strategy, `random` sampling.
         sampling_strategy : Optional(str)
-            Strategy used to sample terms to perturb in the original sentence. The default is random. If importance_scores is given, then sampling_strategy may be `topK` or `bottomK`, in which case the importance_scores (or inverted scores) vector is used for weighted sampling.
+            Strategy used to sample terms to perturb in the original sentence. The default is random. If custom_importance_scores is given, then sampling_strategy may be `topK` or `bottomK`, in which case the custom_importance_scores (or inverted scores) vector is used for weighted sampling.
         p_replace : Optional(float)
             Sampling probability for the replacement perturbation. If given, will be normalized with all other perturbation sampling probabilities. The default is uniform sampling across all perturbations.
         p_dropword : Optional(float)
@@ -129,10 +128,18 @@ class SQuADDataset(Dataset):
             Sampling probability for the misspelling perturbation. If given, will be normalized with all other perturbation sampling probabilities. The default is uniform sampling across all perturbations.
         save_freq : Optional(int)
             A checkpoint file will be saved every save_freq examples in the raw_examples data. The default value is 100.
+        from_checkpoint : Optional(bool)
+            Flag to read augmented data from a previous saved state. We will check for a checkpoint.pkl file in the working directory and continue augmentation on the raw_examples data. The default value is False.
+        out_prefix : Optional(str)
+            Tag used to denote the saved results files if verbose is True. The default is None. If not specified, will be set to either `train` if is_training=True, or `dev` otherwise.
+        verbose : Optional(bool)
+            Flag to enable verbose logging
         """
 
         if is_training and not out_prefix:
             self.out_prefix = 'train'
+        elif out_prefix:
+            self.out_prefix = out_prefix
         else:
             self.out_prefix = 'dev'
         self.is_training = is_training
@@ -147,10 +154,14 @@ class SQuADDataset(Dataset):
             "sampling_strategy":sampling_strategy,
             "sampling_k":sampling_k
         }
+        self.from_checkpoint = from_checkpoint
+        self.save_freq = save_freq
+        self.custom_importance_scores = custom_importance_scores
         logger.info('Running SQuADDataset with hparams {}'.format(self.hparams))
 
         self.aug_dataset = []
         self.dataset = []
+        self.formatted_dataset = {}
         self.examples = []
         self.title_map = {}
         self.context_map = {}
@@ -231,7 +242,7 @@ class SQuADDataset(Dataset):
         >>>     squad_dev_examples = json.read(f)
         >>> ds = SQuADDataset(squad_dev_examples, sample_ratio = 0.0001)
         >>> ds.generate()
-        >>> ds.dataset
+        >>> ds()
         """
         aug_examples = copy.deepcopy(self.examples)
 
@@ -240,7 +251,7 @@ class SQuADDataset(Dataset):
         aug_freqs = Counter(aug_indices)
 
         ct = 0
-        if from_checkpoint:
+        if self.from_checkpoint:
             checkpoint = _from_checkpoint()
             if not checkpoint:
                 raise RuntimeError('Failed to load checkpoint file')
@@ -256,7 +267,7 @@ class SQuADDataset(Dataset):
 
         aug_seqs = []
         for aug_idx, count in aug_freqs.items():
-            if len(self.aug_dataset) > self.num_aug_examples:
+            if len(self.aug_dataset) == self.num_aug_examples:
                 continue
             # Get frequency of each augmentation type for current example with replacement
             aug_type_sample = np.random.choice(list(self.augmentation_types.keys()), size=count, p=self.probs)
@@ -274,12 +285,12 @@ class SQuADDataset(Dataset):
             # Used for SQuAD v2.0; not present in v1.1
             is_impossible = raw_data.get('is_impossible', False)
                 
-            if importance_scores and qid in self.custom_importance_scores:
+            if self.custom_importance_scores and qid in self.custom_importance_scores:
                 importance_score = self.custom_importance_scores[qid]
             else:
                 importance_score = None
 
-            if ct % save_freq == 0:
+            if ct % self.save_freq == 0 and ct > 0:
                 logger.info('Generated {} examples'.format(len(self.aug_dataset)))
                 checkpoint = {
                     'aug_freqs':aug_freqs,
@@ -294,7 +305,7 @@ class SQuADDataset(Dataset):
             for aug_type, aug_times in aug_type_freq.items():
                 # Randomly select a number of terms to replace
                 # up to the max `num_replacements`
-                reps = np.random.choice(np.arange(self.num_replacements), 1, replace=False)[0]
+                reps = np.random.choice(np.arange(self.hparams['num_replacements']), 1, replace=False)[0]
 
                 if aug_type == 'drop':
                     # Generate a dropword perturbation
@@ -309,8 +320,8 @@ class SQuADDataset(Dataset):
                                                             importance_scores = importance_score,
                                                             num_replacements = reps,
                                                             num_output_sents = aug_times,
-                                                            sampling_strategy = self.sampling_strategy,
-                                                            sampling_k = self.sampling_k)
+                                                            sampling_strategy = self.hparams['sampling_strategy'],
+                                                            sampling_k = self.hparams['sampling_k'])
                     # Add an additional drop perturbation to each generated question
                     aug_questions += [
                                         self.augmentation_types['drop'].drop_terms(
@@ -346,18 +357,17 @@ class SQuADDataset(Dataset):
 
             ct += 1
 
-        formatted_aug_dataset = format_squad(self.aug_dataset, self.title_map, self.context_map)
-        logger.info('Saving data')
         if self.verbose:
+            logger.info('Saving data')
             # Log the original question alongside augmented with type annotation
-            with open(out_prefix+'_aug_seqs.json', 'w') as f:
+            with open(self.out_prefix+'_aug_seqs.json', 'w') as f:
                 json.dump(aug_seqs, f)
-        with open(out_prefix+'_aug_squad_v1.json', 'w') as f:
-            json.dump(formatted_aug_dataset, f)
-        with open('hparams.json', 'w') as f:
-            json.dump(self.hparams, f)
-
-        self.dataset = aug_dataset
+            with open(self.out_prefix+'_aug_squad_v1.json', 'w') as f:
+                json.dump(formatted_aug_dataset, f)
+            with open('hparams.json', 'w') as f:
+                json.dump(self.hparams, f)
+        self.formatted_dataset = format_squad(self.aug_dataset, self.title_map, self.context_map)
+        self.dataset = self.aug_dataset
 
     def __getitem__(self, index):
         if self.dataset:
@@ -370,6 +380,12 @@ class SQuADDataset(Dataset):
             return len(self.dataset)
         else:
             raise Exception('Please first generate an augmented dataset')
+
+    def __call__(self):
+        if self.formatted_dataset:
+            return self.formatted_dataset
+        else:
+            return None
 
 
 if __name__ == "__main__":
