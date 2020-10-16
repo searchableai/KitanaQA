@@ -13,14 +13,16 @@ setup(
     packages=find_packages("src"),
     install_requires=[
         'config',
-        'numpy',
         'nltk',
+        'numpy',
         'stop-words',
-        'prefect',
-        'torch>=1.3.1',
-        'transformers==3.1.0',
         'pyspark==2.4.0',
-        'spark-nlp==2.5.2'
+        'spark-nlp==2.5.2',
+        'torch==1.3.1',
+        'transformers==3.1.0',
+        'prefect==0.13.4',
+        'pendulum==2.0.5',
+        'dataclasses==0.6',
     ],
     extras_require={
         'dev': [
