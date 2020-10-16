@@ -2,24 +2,22 @@
 <p align="center">Adversarial Training and Data Augmentation for Question-Answer Models</p>
 
 <p align="center">
-  <a href="">[Doggmentator Documentation on ReadTheDocs]</a> 
+  <a href="">[Documentation]</a>
   <br> <br>
   <a href="#about">About</a> •
-  <a href="#setup">Setup</a> •
-  <a href="#usage">Usage</a> •
-  <a href="#design">Design</a> 
+  <a href="#features">Features</a> •
+  <a href="#installation">Getting Started</a> •
   <br> <br>
 </p>
 
 [![CircleCI](https://circleci.com/gh/searchableai/Doggmentator.svg?style=shield&circle-token=de6470b621d1b07e54466dd087b85b80bcedf36c)](https://github.com/searchableai/Doggmentator)
 
-## About
+# About
 
 Doggmentator is an adversarial training and data augmentation framework for fine-tuning NLP language models on question-answering datasets
 
-### Contributors
 
-### *Why Doggmentator?*
+## *Why Doggmentator?*
 While NLP models have made incredible progress on curated question-answer datasets in recent years, they are still brittle and unpredictable in production environments, making productization and enterprise adoption problematic. Doggmentator provides resources to "robustify" Transformer-based question-answer models against many types of natural and synthetic noise. The major features are:
 1. **Adversarial Training** can increase both robustness and performance of fine-tuned Transformer QA models. Here, we implement an embedding-space perturbation method to simulate synthetic noise in model inputs. Comparisons to baselines like BERT-base show remarkable performance gains:
 
@@ -50,12 +48,12 @@ The following perturbation methods are available to augment SQuAD-like data:
 - Random Deletion (RD) using entity-aware term selection
 ```diff
 - (original)  How many species of plants *[were]* recorded in Egypt?
-+ (augmented) How many species of plants *[]* registered in Egypt?
++ (augmented) How many species of plants *[]* recorded in Egypt?
 ```
 - Random Misspelling (RM) using open-source common misspellings datasets
 ```diff
 - (original)  How *[many]* species of plants were recorded in Egypt?
-+ (augmented) How *[mony]* species of plants were registered in Egypt?
++ (augmented) How *[mony]* species of plants were recorded in Egypt?
 ```
 Perturbation types can be flexibly applied in combination with different frequencies for fine-grained control of natural noise profiles
 ```diff
@@ -74,18 +72,23 @@ Using the Prefect library, Doggmenetator makes it increadibly easy to combine di
 - ```sudo update-alternatives --config java```
 - ```java -version```
 
-- Word2Vec-based synonym replacement relies on pretrained embeddings found in the /support directory.
-Unzip word vec files in /support directory
-
 - Install the package
 ```python setup.py install```
 
 # Getting Started
 ```python run_pipeline.py --args=args.json```
 
-# More Examples
-- run_pipeline (Regular, ALUM, train + evaluate)
-- augment_squad
+# Examples
+
+## *Augmentation*
+- [Generating Augmented Datasets](examples/augment_squad)
+- [Custom Text Perturbations](examples/generate_token_perturbations)
+- [MLM Importance Scores](examples/generate_importance_scores_with_mlm)
+
+## *Training and Evaluation*
+- [Automated Training Pipeline](examples/training_and_evaluation)
+- [Adversarial Training](examples/alum_training_and_evaluation)
+- [Adversarial Attack](examples/adversarial_attack)
 
 ## Models Supported
 We make use of the following models and their respective tokenizers and configurations provided by HuggingFace Inc.
@@ -93,12 +96,14 @@ We make use of the following models and their respective tokenizers and configur
 - BERT
 - DistilBERT
 
-## Contributing to Doggmentator
+### Contributors
+
+### Contributing to Doggmentator
 
 We welcome suggestions and contributions! Submit an issue or pull request and we will do our best to respond in a timely manner.
 See [CONTRIBUTING.md](https://github.com/searchableai/Doggmentator/blob/master/CONTRIBUTING.md) for detailed information on contributing.
 
-## Thanks!
+### Thanks!
 - Huggingface Inc.
 - John Snow Labs
 - Torch community
