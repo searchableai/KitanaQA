@@ -267,8 +267,8 @@ class SQuADDataset(Dataset):
 
         aug_seqs = []
         for aug_idx, count in aug_freqs.items():
-            if len(self.aug_dataset) == self.num_aug_examples:
-                continue
+            if len(self.aug_dataset) >= self.num_aug_examples:
+                break
             # Get frequency of each augmentation type for current example with replacement
             aug_type_sample = np.random.choice(list(self.augmentation_types.keys()), size=count, p=self.probs)
             aug_type_freq = Counter(aug_type_sample)
@@ -357,17 +357,19 @@ class SQuADDataset(Dataset):
 
             ct += 1
 
+        self.aug_dataset = self.aug_dataset[:self.num_aug_examples]
+        self.formatted_dataset = format_squad(self.aug_dataset, self.title_map, self.context_map)
+        self.dataset = self.aug_dataset
         if self.verbose:
             logger.info('Saving data')
+            aug_seqs = aug_seqs[:self.num_aug_examples]
             # Log the original question alongside augmented with type annotation
             with open(self.out_prefix+'_aug_seqs.json', 'w') as f:
                 json.dump(aug_seqs, f)
             with open(self.out_prefix+'_aug_squad_v1.json', 'w') as f:
-                json.dump(formatted_aug_dataset, f)
+                json.dump(self.formatted_aug_dataset, f)
             with open('hparams.json', 'w') as f:
                 json.dump(self.hparams, f)
-        self.formatted_dataset = format_squad(self.aug_dataset, self.title_map, self.context_map)
-        self.dataset = self.aug_dataset
 
     def __getitem__(self, index):
         if self.dataset:
