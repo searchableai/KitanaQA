@@ -180,7 +180,7 @@ class TrainerTester:
             assert isinstance(results['f1'], float)
             assert isinstance(results['exact'], float)
 
-    def _eval_alum_and_check_results(self):
+    def _eval_adv_and_check_results(self):
         self._setup_env()
 
         # Load SQuAD-specific dataset and examples for metric calculation
@@ -243,7 +243,7 @@ def test_alum_train():
         del trainer
         gc.collect()
 
-def _test_alum_eval():
+def _test_adv_eval():
         hparams = {
             "model_type" : "distilbert",
             "model_name_or_path" : "distilbert-base-uncased",
@@ -273,7 +273,7 @@ def _test_alum_eval():
             "fp16" : False
         }
         trainer = TrainerTester(**hparams)
-        trainer._eval_alum_and_check_results()
+        trainer._eval_adv_and_check_results()
 
 
 def test_regular_train():
