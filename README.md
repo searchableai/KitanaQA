@@ -2,11 +2,12 @@
 <p align="center">Adversarial Training and Data Augmentation for Question-Answer Models</p>
 
 <p align="center">
-  <a href="">[Documentation]</a>
+  [<a href="">Documentation</a>]
   <br> <br>
   <a href="#about">About</a> •
   <a href="#features">Features</a> •
   <a href="#installation">Getting Started</a> •
+  <a href="#examples">Examples</a>
   <br> <br>
 </p>
 
@@ -54,6 +55,7 @@ The following perturbation methods are available to augment SQuAD-like data:
 ```diff
 - (original)  How *[many]* species of plants were recorded in Egypt?
 + (augmented) How *[mony]* species of plants were recorded in Egypt?
+*- sources: [wiki](https://en.wikipedia.org/wiki/Wikipedia:Lists_of_common_misspellings), [brikbeck](https://www.dcs.bbk.ac.uk/~ROGER/corpora.html)*
 ```
 Perturbation types can be flexibly applied in combination with different frequencies for fine-grained control of natural noise profiles
 ```diff
@@ -67,7 +69,7 @@ Each perturbation type also supports custom term importance sampling, e.g. as ge
 Using the Prefect library, Doggmenetator makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also supports rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently. You can even get training results reported directly in Slack!!!
 
 # Installation
-- Our entity-aware data augmentations make use of the John Snow Labs spark-nlp library, which requires pyspark. Ensure Java v8 is set by default for pyspark compatibility:
+- Our entity-aware data augmentations make use of the John Snow Labs [spark-nlp](https://github.com/JohnSnowLabs/spark-nlp) library, which requires pyspark. Ensure Java v8 is set by default for pyspark compatibility:
 - ```sudo apt install openjdk-8-jdk```
 - ```sudo update-alternatives --config java```
 - ```java -version```
