@@ -37,7 +37,7 @@ BERT-base (ALUM) | 82 | 88.99
 Our implementation is based on the ALUM model, proposed here [https://arxiv.org/pdf/2004.08994.pdf]. We have introduced a number of updates to the formalism and added additional features like adversarial hyperparameter scheduling, and support for fp16 adversarial training.
 
 ## Adversarial Attack
-A key measure of robustness in neural networks is the so-called white-box adversarial attack. In the context of Transformer-based Question-Answer models, this attack seeks to inject certain types of noise into the input embeddings and assess performance on the original labels. Here, we implement the project gradient descent (PGD) attack mechanism, bounded by the l-inf ball. Metrics can be calculated for non-adversarial and adversarial evaluation, making robustness studies much more streamlined and accessible.
+A key measure of robustness in neural networks is the so-called white-box adversarial attack. In the context of Transformer-based Question-Answer models, this attack seeks to inject certain types of noise into the input embeddings and assess performance on the original labels. Here, we implement the projected gradient descent (PGD) attack mechanism, bounded by the norm-ball. Metrics can be calculated for non-adversarial and adversarial evaluation, making robustness studies more streamlined and accessible.
 
 ## Augmenting Input Data
 The following perturbation methods are available to augment SQuAD-like data:
