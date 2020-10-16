@@ -52,10 +52,10 @@ The following perturbation methods are available to augment SQuAD-like data:
 + (augmented) How many species of plants *[]* recorded in Egypt?
 ```
 - Random Misspelling (RM) using open-source common misspellings datasets
+-- *sources: [wiki](https://en.wikipedia.org/wiki/Wikipedia:Lists_of_common_misspellings), [brikbeck](https://www.dcs.bbk.ac.uk/~ROGER/corpora.html)*
 ```diff
 - (original)  How *[many]* species of plants were recorded in Egypt?
 + (augmented) How *[mony]* species of plants were recorded in Egypt?
-*- sources: [wiki](https://en.wikipedia.org/wiki/Wikipedia:Lists_of_common_misspellings), [brikbeck](https://www.dcs.bbk.ac.uk/~ROGER/corpora.html)*
 ```
 Perturbation types can be flexibly applied in combination with different frequencies for fine-grained control of natural noise profiles
 ```diff
