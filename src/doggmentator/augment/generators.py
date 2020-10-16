@@ -87,7 +87,9 @@ class MisspReplace(BaseGenerator):
     def _load_misspellings(self):
         """ 
         Load dict of term misspellings
-        ref:    wiki, brikbeck
+        Source References:
+            wiki (https://en.wikipedia.org/wiki/Wikipedia:Lists_of_common_misspellings)
+            brikbeck (https://www.dcs.bbk.ac.uk/~ROGER/corpora.html)
         """
         data_file = pkg_resources.resource_filename(
             'doggmentator', 'support/missp.json')
