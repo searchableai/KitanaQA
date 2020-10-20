@@ -1,6 +1,6 @@
 import pytest
 import unittest
-from doggmentator.augment.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms
+from doggmentator.augment.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms, RepeatTerms
 from doggmentator.augment.generators import BaseGenerator, MisspReplace, SynonymReplace, _wordnet_syns
 from doggmentator import get_logger
 # init logging
@@ -109,6 +109,15 @@ class TestTermReplacement(unittest.TestCase):
         dropped_sentences = drop_word_sents.drop_terms(sentence=original_sentence, num_terms=2, num_output_sents=2)
         assert isinstance(dropped_sentences, list)
         assert len(dropped_sentences) == 2
+
+    def test_replaceterms(self):
+        repeat_word_sents = RepeatTerms()
+        original_sentence = "I am mr robot"
+        repeated_sentences = repeat_word_sents.repeat_terms(sentence=original_sentence, num_terms=1, num_output_sents=1)
+        assert isinstance(repeated_sentences, list)
+        assert len(repeated_sentences) == 1
+        assert repeated_sentences[0] == 'I am am mr robot'
+
 
 if __name__ == '__main__':
     pass

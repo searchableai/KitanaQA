@@ -138,6 +138,118 @@ def get_scores(
     return scores  # [(tok, score),...]
 
 
+class RepeatTerms():
+    """ A class to generate sentence perturbations by repeating target terms
+    ...
+    Methods
+    ----------
+    repeat_terms(sentence, num_terms, num_output_sents)
+      Generate synonyms for an input term 
+    """
+    def __init__(self):
+        """Instantiate a ReplaceTerms object"""
+        pass
+
+    def repeat_terms(
+            self,
+            sentence: str,
+            num_terms: int=1,
+            num_output_sents: int=1) -> List:
+        """Generate a certain number of sentence perturbations by repeating select terms
+
+        Parameters
+        ----------
+        sentence : str
+            The input sentence to be perturbed.
+        num_terms : Optional(int)
+            The number of terms to target in the original sentence, with this perturbation. The number should be greater than 0. The default value is 1.
+        num_output_sents : Optional(int)
+            The number of perturbed sentences to produce. The number should be greater than 0. The default is 1.
+
+        Returns
+        -------
+        [str]
+            Returns a list of perturbed sentences for the input sentence.
+
+        Example
+        -------
+        >>> from term_replacement import RepeatTerms
+        >>> p = RepeatTerms()
+        >>> sent = "I was born in a small town"
+        >>> num_terms = 1
+        >>> num_output_sents = 1
+        >>> p.generate(sent, num_terms, num_output_sents)
+        ['I was was born in a small town']
+        """
+
+        inputs = validate_inputs(
+            num_terms,
+            num_output_sents)
+        num_terms = inputs.pop(0)
+        num_output_sents = inputs.pop(0)
+
+        # Whitespace tokenizer
+        word_tokens = word_tokenize(sentence)
+
+        # Create list of candidate repeat words
+        repeat_word_indices = []
+        for idx, word in enumerate(word_tokens):
+            if word in remove_list:
+                repeat_word_indices.append(idx)
+
+        # Ensure num_terms does not exceed possible terms
+        if num_terms > len(repeat_word_indices):
+            num_terms = len(repeat_word_indices)
+
+        new_sentences = []
+        if len(repeat_word_indices) == 0:
+            return new_sentences
+
+        # Randomly choose num_terms indices from all repeat_word_indices
+        comb = []
+        if num_terms == -1:
+            # Generate all possible combinations for debugging
+            for r in range(1, len(repeat_word_indices) + 1):
+                comb += list(itertools.combinations(repeat_word_indices, r))
+        else:
+            # Generate all combinations of num_terms stopwords
+            comb = list(itertools.combinations(repeat_word_indices, num_terms))
+
+        # Randomly sample repeat term combinations
+        n_chosen_indices = [comb[idx] for idx in np.random.choice(len(comb), size=min(num_output_sents, len(comb)), replace=False)]
+        for chosen_indices in n_chosen_indices:
+            new_words = [
+                    [word_tokens[idx]]
+                    if idx not in chosen_indices
+                    else [word_tokens[idx], word_tokens[idx]]
+                    for idx in range(len(word_tokens))
+            ]
+            new_words = [sub for subl in new_words for sub in subl]
+            new_sentence = ' '.join(new_words)
+            # Check if generated sent is empty string
+            if new_sentence:
+                new_sentences.append(new_sentence)
+
+        # Shuffle permutations, sanitize and slice
+        new_sentences = list(set(new_sentences))
+        new_sentences = [
+            re.sub(r'([A-Za-z0-9])(\s+)([^A-Za-z0-9])', r'\1\3',
+                    x.replace('\' s ','\'s ')
+            )
+            for x in new_sentences
+        ]
+
+        if len(new_sentences) < num_output_sents:
+            logger.debug(
+                '{}:repeat_terms: unable to generate num_output_sents - {} of ({})'.format(
+                    __file__.split('/')[-1],
+                    len(new_sentences),
+                    num_output_sents
+                )
+            )
+        return new_sentences
+
+
 class DropTerms():
     """ A class to generate sentence perturbations by dropping target terms
     ...
