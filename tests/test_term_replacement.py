@@ -1,7 +1,6 @@
 import pytest
 import unittest
 from doggmentator.augment.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms, RepeatTerms
-from doggmentator.augment.generators import BaseGenerator, MisspReplace, SynonymReplace, _wordnet_syns
 from doggmentator import get_logger
 # init logging
 logger = get_logger()
@@ -85,6 +84,14 @@ class TestTermReplacement(unittest.TestCase):
         syn_sentences = syn_gen.replace_terms(original_sentence, importance_scores, num_replacements=3, num_output_sents=1)
         assert isinstance(syn_sentences, list)
         assert len(syn_sentences) == 1
+
+    def test_replace_terms_synonym_noner(self):
+        original_sentence = 'what developmental network was discontinued after the shutdown of abc1?'
+        syn_gen = ReplaceTerms(rep_type = 'synonym', use_ner=False)
+        syn_sentences = syn_gen.replace_terms(original_sentence, num_replacements=3, num_output_sents=1)
+        assert isinstance(syn_sentences, list)
+        assert len(syn_sentences) == 1
+
 
     def test_replace_terms_misspelling(self):
         original_sentence = 'The sky is absolutely beautiful in the summer'
