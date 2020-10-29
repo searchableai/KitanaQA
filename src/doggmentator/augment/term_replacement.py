@@ -16,7 +16,6 @@ from sparknlp.pretrained import PretrainedPipeline
 from sparknlp.annotator import *
 from sparknlp.common import RegexRule
 from sparknlp.base import *
-from doggmentator.nlp_utils.firstnames import firstnames
 from doggmentator.augment.generators import SynonymReplace, MisspReplace, MLMSynonymReplace
 from doggmentator import get_logger
 
@@ -31,8 +30,7 @@ stop_words = list(get_stop_words('en'))  # have around 900 stopwords
 nltk_words = list(stopwords.words('english'))  # have around 150 stopwords
 stop_words.extend(nltk_words)
 stop_words = list(set(stop_words))
-remove_list = firstnames+stop_words
-remove_list = [x.lower() for x in remove_list]
+remove_list = [x.lower() for x in stop_words]
 
 
 def validate_inputs(
@@ -60,7 +58,8 @@ def get_scores(
         tokens: List[str],
         mode: str='random',
         mode_k: int=None,
-        scores: List[Tuple]=None) -> List[Tuple]:
+        scores: List[Tuple]=None,
+        remove_stop: bool=True) -> List[Tuple]:
     """ Initialize and sanitize importance scores """
 
     # Check mode parameters
@@ -72,12 +71,15 @@ def get_scores(
 
     if not scores:
         # Uniform initialization
-        scores = [
-            1.
-            if x not in remove_list
-            else 0
-            for x in tokens
-        ]
+        if remove_stop:
+            scores = [
+                1
+                if x not in remove_list
+                else 0
+                for x in tokens
+            ]
+        else:
+            scores = [1 for x in tokens]
         
         if scores and sum(scores) != 0.:
             # Normalize
@@ -101,7 +103,6 @@ def get_scores(
                     tokens_idx += 1
             scores = final_scores
             
-
         # Ensure score types, norm, sgn
         tokens = [x[0] for x in scores]
         scores = [abs(float(x[1])) for x in scores]
@@ -136,6 +137,118 @@ def get_scores(
             ]
         scores = list(zip(tokens, scores))
     return scores  # [(tok, score),...]
+
+
+class RepeatTerms():
+    """ A class to generate sentence perturbations by repeating target terms
+    ...
+    Methods
+    ----------
+    repeat_terms(sentence, num_terms, num_output_sents)
+      Generate synonyms for an input term 
+    """
+    def __init__(self):
+        """Instantiate a ReplaceTerms object"""
+        pass
+
+    def repeat_terms(
+            self,
+            sentence: str,
+            num_terms: int=1,
+            num_output_sents: int=1) -> List:
+        """Generate a certain number of sentence perturbations by repeating select terms
+
+        Parameters
+        ----------
+        sentence : str
+            The input sentence to be perturbed.
+        num_terms : Optional(int)
+            The number of terms to target in the original sentence, with this perturbation. The number should be greater than 0. The default value is 1.
+        num_output_sents : Optional(int)
+            The number of perturbed sentences to produce. The number should be greater than 0. The default is 1.
+
+        Returns
+        -------
+        [str]
+            Returns a list of perturbed sentences for the input sentence.
+
+        Example
+        -------
+        >>> from term_replacement import RepeatTerms
+        >>> p = RepeatTerms()
+        >>> sent = "I was born in a small town"
+        >>> num_terms = 1
+        >>> num_output_sents = 1
+        >>> p.generate(sent, num_terms, num_output_sents)
+        ['I was was born in a small town']
+        """
+
+        inputs = validate_inputs(
+            num_terms,
+            num_output_sents)
+        num_terms = inputs.pop(0)
+        num_output_sents = inputs.pop(0)
+
+        # Whitespace tokenizer
+        word_tokens = word_tokenize(sentence)
+
+        # Create list of candidate repeat words
+        repeat_word_indices = []
+        for idx, word in enumerate(word_tokens):
+            if word in remove_list:
+                repeat_word_indices.append(idx)
+
+        # Ensure num_terms does not exceed possible terms
+        if num_terms > len(repeat_word_indices):
+            num_terms = len(repeat_word_indices)
+
+        new_sentences = []
+        if len(repeat_word_indices) == 0:
+            return new_sentences
+
+        # Randomly choose num_terms indices from all repeat_word_indices
+        comb = []
+        if num_terms == -1:
+            # Generate all possible combinations for debugging
+            for r in range(1, len(repeat_word_indices) + 1):
+                comb += list(itertools.combinations(repeat_word_indices, r))
+        else:
+            # Generate all combinations of num_terms stopwords
+            comb = list(itertools.combinations(repeat_word_indices, num_terms))
+
+        # Randomly sample repeat term combinations
+        n_chosen_indices = [comb[idx] for idx in np.random.choice(len(comb), size=min(num_output_sents, len(comb)), replace=False)]
+        for chosen_indices in n_chosen_indices:
+            new_words = [
+                    [word_tokens[idx]]
+                    if idx not in chosen_indices
+                    else [word_tokens[idx], word_tokens[idx]]
+                    for idx in range(len(word_tokens))
+            ]
+            new_words = [sub for subl in new_words for sub in subl]
+            new_sentence = ' '.join(new_words)
+            # Check if generated sent is empty string
+            if new_sentence:
+                new_sentences.append(new_sentence)
+
+        # Shuffle permutations, sanitize and slice
+        new_sentences = list(set(new_sentences))
+        new_sentences = [
+            re.sub(r'([A-Za-z0-9])(\s+)([^A-Za-z0-9])', r'\1\3',
+                    x.replace('\' s ','\'s ')
+            )
+            for x in new_sentences
+        ]
+
+        if len(new_sentences) < num_output_sents:
+            logger.debug(
+                '{}:repeat_terms: unable to generate num_output_sents - {} of ({})'.format(
+                    __file__.split('/')[-1],
+                    len(new_sentences),
+                    num_output_sents
+                )
+            )
+        return new_sentences
 
 
 class DropTerms():
@@ -266,6 +379,7 @@ class ReplaceTerms():
             Flag specifying whether to use entity-aware replacement. If True, when calculating the sampling weights for any perturbation, named entities will be zeroed. In this case, the NER model is loaded here. The default value is True.
         """
         self.use_ner = use_ner
+        self.rep_type = rep_type
         if rep_type not in ['synonym', 'misspelling', 'mlmsynonym']:
             logger.error(
                 '{}:ReplaceTerms __init__ invalid rep_type'.format(
@@ -416,12 +530,18 @@ class ReplaceTerms():
                 )
             num_replacements = len(masked_vector) - sum(masked_vector)
 
+        if self.rep_type == 'misspelling':
+            remove_stop = True
+        else:
+            remove_stop = False
+
         # Initialize sampling scores
         importance_scores = get_scores(
             tokens,
             sampling_strategy,
             sampling_k,
-            importance_scores)
+            importance_scores,
+            remove_stop)
 
         if not importance_scores:
             return []
@@ -446,19 +566,35 @@ class ReplaceTerms():
         # Create List of Lists of term variants
         generated = {x[0]:None for x in term_score_index}
         generated = {
-            x[0]:self._generator.generate(x[0], 10, **{'toks':tokens, 'token_idx':i})
+            x[0]:self._generator.generate(x[0].lower(), 10, **{'toks':tokens, 'token_idx':i})
             for i,x in enumerate(term_score_index)
             if not x[2]
         }
 
         term_variants = {
-            x[0]:generated.get(x[0])
+            x[0]:generated.get(x[0], [])
             if (i in rep_term_indices
-                and not masked_vector[i]
-                and generated.get(x[0]))
+                and not masked_vector[i])
             else []
             for i,x in enumerate(term_score_index)
         }
+
+        # Check if there are enough candidate terms
+        if not term_variants:
+            logger.warning(
+                '{}:replace_terms: unable to generate num_variants - {} of ({})'.format(
+                    __file__.split('/')[-1],
+                        num_replacements,
+                        len(term_variants) - sum(masked_vector)
+                    )
+                )
+        else:
+            term_variants = {
+                k:[x[0].upper()+x[1:] for x in v]
+                if k[0].isupper()
+                else v
+                for k,v in term_variants.items()
+            }
 
         # Set scores to zero for all terms w/o synonyms
         importance_scores = [
@@ -502,6 +638,8 @@ class ReplaceTerms():
         if len(candidate_sents) < num_output_sents:
             num_output_sents = len(candidate_sents)
         '''
+        if not term_variants or len([x[2]==0 for x in term_score_index])==0:
+            raise Exception('no term variants or term_score_index')
 
         max_attempts = 50
         counter = 0
@@ -548,6 +686,7 @@ class ReplaceTerms():
             )
             for x in new_sentences[:num_output_sents]
         ]
+        new_sentences = [x for x in new_sentences if x != sentence]
 
         if len(new_sentences) < num_output_sents:
             logger.debug(
