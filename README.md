@@ -68,7 +68,7 @@ Perturbation types can be flexibly applied in combination with different frequen
 - (original)  How *many* species *of* plants *were* recorded in Egypt?
 + (augmented) How *mony* species ** plants ** recorded in Egypt?
 ```
-Each perturbation type also supports custom term importance sampling, e.g. as generated using a MLM &nbsp  
+Each perturbation type also supports custom term importance sampling, e.g. as generated using a MLM  
 ```(How, 0.179), (many, 0.254), (species, 0.123), (of, 0.03), (plants, 0.136) (were, 0.039), (recorded, 0.067), (in, 0.012), (Egypt, 0.159)```
 
 ## ML Flows
