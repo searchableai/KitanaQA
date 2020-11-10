@@ -1,3 +1,4 @@
+![alt text](https://drive.google.com/file/d/1tiEm4Ux-HQ2NX22ruRNonWi88zMcwcA-/view?usp=sharing)
 <h1 align="center">Doggmentator</h1>
 <p align="center">Adversarial Training and Data Augmentation for Question-Answer Models</p>
 
@@ -22,6 +23,8 @@ Doggmentator is an adversarial training and data augmentation framework for fine
 While NLP models have made incredible progress on curated question-answer datasets in recent years, they are still brittle and unpredictable in production environments, making productization and enterprise adoption problematic. Doggmentator provides resources to "robustify" Transformer-based question-answer models against many types of natural and synthetic noise. The major features are:
 1. **Adversarial Training** can increase both robustness and performance of fine-tuned Transformer QA models. Here, we implement an embedding-space perturbation method to simulate synthetic noise in model inputs. Comparisons to baselines like BERT-base show remarkable performance gains:
 
+- Our experiments on the SQuAD v1.1 question answering task show a marked improvement in f1 and em metrics using adversarial training:
+
 Model | em | f1
 --- | --- | ---
 BERT-base | 80 | 88.5
@@ -34,33 +37,38 @@ BERT-base (ALUM) | 82 | 88.99
 # Features
 
 ## Adversarial Training
-Our implementation is based on the ALUM model, proposed here [https://arxiv.org/pdf/2004.08994.pdf]. We have introduced a number of updates to the formalism and added additional features like adversarial hyperparameter scheduling, and support for fp16 adversarial training.
+Our implementation is based on the smoothness-inducing adversarial regularization approach, proposed [here](https://arxiv.org/pdf/1911.03437.pdf). We have introduced a number of updates to the formalism and added additional features like adversarial hyperparameter scheduling, and support for fp16 adversarial training.
 
 ## Adversarial Attack
-A key measure of robustness in neural networks is the so-called white-box adversarial attack. In the context of Transformer-based Question-Answer models, this attack seeks to inject certain types of noise into the input embeddings and assess performance on the original labels. Here, we implement the projected gradient descent (PGD) attack mechanism, bounded by the norm-ball. Metrics can be calculated for non-adversarial and adversarial evaluation, making robustness studies more streamlined and accessible.
+A key measure of robustness in neural networks is the so-called white-box adversarial attack. In the context of Transformer-based Question-Answer models, this attack seeks to inject noise into the model's input embeddings and assess performance on the original labels. Here, we implement the projected gradient descent (PGD) attack mechanism, bounded by the norm-ball. Metrics can be calculated for non-adversarial and adversarial evaluation, making robustness studies more streamlined and accessible.
 
 ## Augmenting Input Data
 The following perturbation methods are available to augment SQuAD-like data:
-- Synonym Replacement (SR) via 1) constrained word2vec [https://arxiv.org/pdf/1603.00892.pdf], and 2) MLM using BERT
+- Synonym Replacement (SR) via 1) constrained [word2vec](https://arxiv.org/pdf/1603.00892.pdf), and 2) MLM using BERT
 ```diff
-- (original)  How many species of plants were *[recorded]* in Egypt?
-+ (augmented) How many species of plants were *[registered]* in Egypt?
+- (original)  How many species of plants were *recorded* in Egypt?
++ (augmented) How many species of plants were *registered* in Egypt?
 ```
 - Random Deletion (RD) using entity-aware term selection
 ```diff
-- (original)  How many species of plants *[were]* recorded in Egypt?
-+ (augmented) How many species of plants *[]* recorded in Egypt?
+- (original)  How many species of plants *were* recorded in Egypt?
++ (augmented) How many species of plants ** recorded in Egypt?
+```
+- Random Repetition (RR) using entity-aware term selection
+```diff
+- (original)  How many species of plants *were* recorded in Egypt?
++ (augmented) How many species of plants *were were* recorded in Egypt?
 ```
 - Random Misspelling (RM) using open-source common misspellings datasets
--- *sources: [wiki](https://en.wikipedia.org/wiki/Wikipedia:Lists_of_common_misspellings), [brikbeck](https://www.dcs.bbk.ac.uk/~ROGER/corpora.html)*
+    -- *sources: [wiki](https://en.wikipedia.org/wiki/Wikipedia:Lists_of_common_misspellings), [brikbeck](https://www.dcs.bbk.ac.uk/~ROGER/corpora.html)*
 ```diff
-- (original)  How *[many]* species of plants were recorded in Egypt?
-+ (augmented) How *[mony]* species of plants were recorded in Egypt?
+- (original)  How *many* species of plants were recorded in Egypt?
++ (augmented) How *mony* species of plants were recorded in Egypt?
 ```
 Perturbation types can be flexibly applied in combination with different frequencies for fine-grained control of natural noise profiles
 ```diff
-- (original)  How *[many]* species *[of]* plants *[were]* recorded in Egypt?
-+ (augmented) How *[mony]* species *[]* plants *[]* recorded in Egypt?
+- (original)  How *many* species *of* plants *were* recorded in Egypt?
++ (augmented) How *mony* species ** plants ** recorded in Egypt?
 ```
 Each perturbation type also supports custom term importance sampling, e.g. as generated using a MLM
 ```(How, 0.179), (many, 0.254), (species, 0.123), (of, 0.03), (plants, 0.136) (were, 0.039), (recorded, 0.067), (in, 0.012), (Egypt, 0.159)```
@@ -69,16 +77,16 @@ Each perturbation type also supports custom term importance sampling, e.g. as ge
 Using the Prefect library, Doggmenetator makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also supports rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently. You can even get training results reported directly in Slack!!!
 
 # Installation
-- Our entity-aware data augmentations make use of the John Snow Labs [spark-nlp](https://github.com/JohnSnowLabs/spark-nlp) library, which requires pyspark. Ensure Java v8 is set by default for pyspark compatibility:
+- Our entity-aware data augmentations make use of the John Snow Labs [spark-nlp](https://github.com/JohnSnowLabs/spark-nlp) library, which requires pyspark. To enable this feature, make sure Java v8 is set by default for pyspark compatibility:
 - ```sudo apt install openjdk-8-jdk```
 - ```sudo update-alternatives --config java```
 - ```java -version```
 
 - Install the package
-```python setup.py install```
+- ```python setup.py install```
 
 # Getting Started
-```python run_pipeline.py --args=args.json```
+- ```python run_pipeline.py --args=args.json```
 
 # Examples
 
@@ -98,14 +106,12 @@ We make use of the following models and their respective tokenizers and configur
 - BERT
 - DistilBERT
 
-### Contributors
-
 ### Contributing to Doggmentator
 
 We welcome suggestions and contributions! Submit an issue or pull request and we will do our best to respond in a timely manner.
 See [CONTRIBUTING.md](https://github.com/searchableai/Doggmentator/blob/master/CONTRIBUTING.md) for detailed information on contributing.
 
 ### Thanks!
-- Huggingface Inc.
 - John Snow Labs
-- Torch community
+- Hugging Face Inc.
+- pytorch community
