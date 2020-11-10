@@ -6,7 +6,7 @@
   <a href="#about">About</a> •
   <a href="#features">Features</a> •
   <a href="#installation">Install</a> •
-  <a href="#getting started">Getting Started</a> •
+  <a href="#getting-started">Getting Started</a> •
   <a href="#examples">Examples</a>
   <br> <br>
 </p>
