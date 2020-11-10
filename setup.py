@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from setuptools import setup, find_packages 
 
-def check_java_v():
+def _check_java():
     version = subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT).decode('utf-8')
     version = re.findall('"([^"]*)"', version)[0]
     version = version.split('.')[:2]
@@ -12,6 +12,33 @@ def check_java_v():
         return False
     else:
         return True
+
+
+def _get_requirements():
+    """
+    Here we check the Java version for compatibility with pyspark/spark-nlp.
+    If incompatible, we skip the spark-nlp install, which deactivates
+    entity-aware features at runtime.
+    """
+    java_compat = _check_java()
+    installs = [
+        'config',
+        'nltk',
+        'numpy>=1.14.0,<1.18.0',
+        'stop-words',
+        'torch==1.5.1',
+        'transformers==3.1.0',
+        'prefect==0.13.4',
+        'pendulum==2.0.5',
+        'dataclasses==0.6',
+    ]
+    if java_compat:
+        installs += [
+            'pyspark==2.4.0',
+            'spark-nlp==2.5.2',
+        ]
+    return installs
+        
  
 setup(
     name='Doggmentator',
@@ -22,19 +49,7 @@ setup(
     package_dir={"":"src"},
     python_requires=">=3.6.0",
     packages=find_packages("src"),
-    install_requires=[
-        'config',
-        'nltk',
-        'numpy>=1.14.0,<1.18.0',
-        'stop-words',
-        'pyspark==2.4.0',
-        'spark-nlp==2.5.2',
-        'torch==1.5.1',
-        'transformers==3.1.0',
-        'prefect==0.13.4',
-        'pendulum==2.0.5',
-        'dataclasses==0.6',
-    ],
+    install_requires=_get_requirements(),
     extras_require={
         'dev': [
             'pytest',

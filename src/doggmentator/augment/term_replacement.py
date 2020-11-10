@@ -1,26 +1,31 @@
 import pkg_resources
-import sparknlp
-import re
 import random
 import itertools
 import re
 import json
 import numpy as np
-import nltk
-from nltk.tokenize import word_tokenize
 from stop_words import get_stop_words
 from typing import List, Dict, Tuple
 from numpy import dot
 from numpy.linalg import norm
-from sparknlp.pretrained import PretrainedPipeline
-from sparknlp.annotator import *
-from sparknlp.common import RegexRule
-from sparknlp.base import *
+
+import nltk
+from nltk.tokenize import word_tokenize
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+
+try:
+    import sparknlp
+    from sparknlp.pretrained import PretrainedPipeline
+    from sparknlp.annotator import *
+    from sparknlp.common import RegexRule
+    from sparknlp.base import *
+    SPARK_NLP_ENABLED = True
+except Exception as e:
+    SPARK_NLP_ENABLED = False
+
 from doggmentator.augment.generators import SynonymReplace, MisspReplace, MLMSynonymReplace
 from doggmentator import get_logger
-
-nltk.download('stopwords')
-from nltk.corpus import stopwords, wordnet
 
 # init logging
 logger = get_logger()
@@ -365,6 +370,8 @@ class ReplaceTerms():
     replace_terms(sentence, importance_scores, num_replacements, num_output_sents, sampling_strategy, sampling_k)
       Generate synonyms for an input term 
     """
+    global SPARK_NLP_ENABLED
+
     def __init__(
             self,
             rep_type: str='synonym',
@@ -378,7 +385,7 @@ class ReplaceTerms():
         use_ner : Optional(bool)
             Flag specifying whether to use entity-aware replacement. If True, when calculating the sampling weights for any perturbation, named entities will be zeroed. In this case, the NER model is loaded here. The default value is True.
         """
-        self.use_ner = use_ner
+        self.use_ner = use_ner if SPARK_NLP_ENABLED else False
         self.rep_type = rep_type
         if rep_type not in ['synonym', 'misspelling', 'mlmsynonym']:
             logger.error(
@@ -390,7 +397,7 @@ class ReplaceTerms():
         self._generator = self._get_generator(rep_type)
         if not self._generator:
             raise RuntimeError('Unable to init generator')
-        if use_ner:
+        if self.use_ner:
             try:
                 spark = sparknlp.start()
                 self._ner_pipeline = PretrainedPipeline('recognize_entities_dl', lang='en')
