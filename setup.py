@@ -37,7 +37,7 @@ def _get_requirements():
             'pyspark==2.4.0',
             'spark-nlp==2.5.2',
         ]
-    return java_compat
+    return installs
         
  
 setup(
