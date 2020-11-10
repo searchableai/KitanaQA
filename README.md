@@ -2,7 +2,6 @@
 &nbsp
 <h1 align="center">Doggmentator</h1>
 <p align="center">Adversarial Training and Data Augmentation for Robust Question-Answering</p>
-
 <p align="center">
   <br></br>
   <a href="#about">About</a> •
