@@ -1,7 +1,7 @@
 <p align="center"><img src="/assets/img/searchable-logo_full-lockup-horizontal_dark.png"></p>
 &nbsp
 <h1 align="center">Doggmentator</h1>
-<p align="center">Adversarial Training and Data Augmentation for Robust Question-Answering</p>
+<h2 align="center">Adversarial Training and Data Augmentation for Robust Question-Answering</h2>
 <p align="center">
   <a href="#about">About</a> •
   <a href="#features">Features</a> •
