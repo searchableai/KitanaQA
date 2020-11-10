@@ -41,7 +41,7 @@ Our implementation is based on the smoothness-inducing adversarial regularizatio
 ## Adversarial Attack
 A key measure of robustness in neural networks is the so-called white-box adversarial attack. In the context of Transformer-based Question-Answer models, this attack seeks to inject noise into the model's input embeddings and assess performance on the original labels. Here, we implement the projected gradient descent (PGD) attack mechanism, bounded by the norm-ball. Metrics can be calculated for non-adversarial and adversarial evaluation, making robustness studies more streamlined and accessible.
 
-## Augmenting Input Data
+## Data Augmentation
 The following perturbation methods are available to augment SQuAD-like data:
 - Synonym Replacement (SR) via 1) constrained [word2vec](https://arxiv.org/pdf/1603.00892.pdf), and 2) MLM using BERT
 ```diff
