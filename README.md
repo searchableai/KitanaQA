@@ -1,4 +1,4 @@
-![Searchable Logo](https://drive.google.com/file/d/1tiEm4Ux-HQ2NX22ruRNonWi88zMcwcA-/view?usp=sharing)
+![Searchable Logo](/assets/img/searchable-logo_full-lockup-vertical_dark.png)
 <h1 align="center">Doggmentator</h1>
 <p align="center">Adversarial Training and Data Augmentation for Question-Answer Models</p>
 
@@ -28,7 +28,7 @@ While NLP models have made incredible progress on curated question-answer datase
   Model | em | f1
   --- | --- | ---
   BERT-base | 80.8 | 88.5
-  BERT-base (ALUM) | 81.97 | 88.92
+  **BERT-base (ALUM)** | **81.97** | **88.92**
 
 2. **Augment your dataset** to increase model generalizability and robustness using token-level perturbations. While Adversarial Training provides some measure of robustness against bounded perturbations, Augmentation can accomodate a wide range of naturally-occuring noise in user input. We provide tools to augment existing SQuAD-like datasets by perturbing the examples along a number of different dimensions, including synonym replacement, misspelling, and deletion.
 
