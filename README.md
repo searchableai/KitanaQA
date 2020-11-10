@@ -23,12 +23,12 @@ Doggmentator is an adversarial training and data augmentation framework for fine
 While NLP models have made incredible progress on curated question-answer datasets in recent years, they are still brittle and unpredictable in production environments, making productization and enterprise adoption problematic. Doggmentator provides resources to "robustify" Transformer-based question-answer models against many types of natural and synthetic noise. The major features are:
 1. **Adversarial Training** can increase both robustness and performance of fine-tuned Transformer QA models. Here, we implement an embedding-space perturbation method to simulate synthetic noise in model inputs. Comparisons to baselines like BERT-base show remarkable performance gains:
 
-  Our experiments on the SQuAD v1.1 question answering task show a marked improvement in f1 and em metrics using adversarial training:
+  Our experiments on the SQuAD v1.1 question answering task show a marked improvement in f1 and em scores using adversarial training:
 
   Model | em | f1
   --- | --- | ---
-  BERT-base | 80 | 88.5
-  BERT-base (ALUM) | 82 | 88.99
+  BERT-base | 80.8 | 88.5
+  BERT-base (ALUM) | 81.97 | 88.92
 
 2. **Augment your dataset** to increase model generalizability and robustness using token-level perturbations. While Adversarial Training provides some measure of robustness against bounded perturbations, Augmentation can accomodate a wide range of naturally-occuring noise in user input. We provide tools to augment existing SQuAD-like datasets by perturbing the examples along a number of different dimensions, including synonym replacement, misspelling, and deletion.
 
