@@ -38,29 +38,6 @@ def tensor_to_list(tensor):
     return tensor.detach().cpu().tolist()
 
 
-def _alum_grad_project(X, eps, ord = 'inf'):
-    if ord == 2:
-        dims = list(range(1, X.dim()))
-        norms = torch.sqrt(torch.sum(X * X, dim=dims, keepdim=True))
-        return torch.min(torch.ones(norms.shape), eps / norms) * X
-    elif ord == 'inf':
-        return torch.clamp(X, min = -eps, max = eps)
-    else:
-        msg = "Only ord = inf and ord = 2 have been implemented"
-        raise NotImplementedError(msg)
-
-
-def _adv_sgn_attack(delta, eps, eps_iter, ord = 'inf'):
-    if ord == 'inf':
-        grad_sign = delta.grad.data.sign()
-        delta.data += eps * grad_sign
-        delta.data = torch.clamp(delta.data, min = -eps, max = eps)
-        return delta
-    else:
-        msg = "Only ord = inf has been implemented"
-        raise NotImplementedError(msg)
-
-
 class Trainer(HFTrainer):
     """ A class to provide the adversarial and augmented training and evaluation
     ...
@@ -310,15 +287,13 @@ class Trainer(HFTrainer):
 
             # Check for inf/NaN in delta grad. These can be introduced by instability in mixed-precision training.
             if not torch.all(torch.isfinite(self._delta.grad.data)):
-                logger.debug('Detected inf/NaN in adv gradient. Zeroing and continuing accumulation')
+                logger.warning('Detected inf/NaN in adv gradient. Zeroing and continuing accumulation')
                 self._alum_optimizer.zero_grad()
 
             # Calculate g_adv and update delta every actual epoch
             if (self._step_idx + 1) % self.args.gradient_accumulation_steps == 0:
                 g_adv = self._delta.grad.data.detach()
-                logger.debug('\n=== self._delta.data max {} - norms {}'.format(torch.max(self._delta.data), torch.norm(self._delta.data)))
-                self._delta.data = _alum_grad_project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
-
+                self._delta.data = self._alum_grad_project((self._delta + self.params.eta * g_adv), self.params.eps, 'inf')
                 del g_adv
 
         # Set model to train mode and enable accumulation of gradients
@@ -342,7 +317,6 @@ class Trainer(HFTrainer):
         adv_loss = outputs[0]
 
         loss = normal_loss + self._alpha * adv_loss
-        logger.debug('\n=== alpha {} - normal_loss {} - adv_loss {}'.format((loss-normal_loss)/adv_loss, normal_loss, adv_loss))
         if self.args.n_gpu > 1:
             loss = loss.mean()  # mean() to average on multi-gpu parallel (not distributed) training
         if self.args.gradient_accumulation_steps > 1:
@@ -380,6 +354,27 @@ class Trainer(HFTrainer):
             The training loss after one step of training
         """
         return self._step(model, batch)
+
+    def _alum_grad_project(self, grad, eps, ord = 'inf'):
+        if ord == 2:
+            dims = list(range(1, grad.dim()))
+            norms = torch.sqrt(torch.sum(grad * grad, dim=dims, keepdim=True))
+            return torch.min(torch.ones(norms.shape), eps / norms) * grad
+        elif ord == 'inf':
+            return torch.clamp(grad, min = -eps, max = eps)
+        else:
+            msg = "Only ord = inf and ord = 2 have been implemented"
+            raise NotImplementedError(msg)
+
+    def _adv_sgn_attack(self, delta, eps, eps_iter, ord = 'inf'):
+        if ord == 'inf':
+            grad_sign = delta.grad.data.sign()
+            delta.data += eps * grad_sign
+            delta.data = torch.clamp(delta.data, min = -eps, max = eps)
+            return delta
+        else:
+            msg = "Only ord = inf has been implemented"
+            raise NotImplementedError(msg)
 
 
     def adv_evaluate(
@@ -465,13 +460,11 @@ class Trainer(HFTrainer):
                 intermed_adv_outputs = self.model(**inputs)
 
                 adv_loss = intermed_adv_outputs[0]
-                logger.debug('adv_loss: {} {} - embed {}'.format(adv_loss.size(), adv_loss, adv_input_embedding.size()))
                 adv_loss.backward()
 
                 # Calculate g_adv and update delta
                 g_adv = _delta.grad.data.detach()
-                _delta = _adv_sgn_attack(_delta, args.eps, args.eta, 'inf')
-                logger.debug('===_delta norm {} - gadv norm {}'.format(torch.norm(_delta), torch.norm(g_adv)))
+                _delta = self._adv_sgn_attack(_delta, args.eps, args.eta, 'inf')
                 del g_adv
             _delta.grad.zero_()
 
