@@ -29,7 +29,7 @@ While NLP models have made incredible progress on curated question-answer datase
   BERT-base | 80.8 | 88.5
   **BERT-base (ALUM)** | **81.97** | **88.92**
 
-2. **Augment your dataset** to increase model generalizability and robustness using token-level perturbations. While Adversarial Training provides some measure of robustness against bounded perturbations, Augmentation can accomodate a wide range of naturally-occuring noise in user input. We provide tools to augment existing SQuAD-like datasets by perturbing the examples along a number of different dimensions, including synonym replacement, misspelling, and deletion.
+2. **Augment Your Dataset** to increase model generalizability and robustness using token-level perturbations. While Adversarial Training provides some measure of robustness against bounded perturbations, Augmentation can accomodate a wide range of naturally-occuring noise in user input. We provide tools to augment existing SQuAD-like datasets by perturbing the examples along a number of different dimensions, including synonym replacement, misspelling, and deletion.
 
 3. **Workflow Automation** to prototype robust NLP models faster for research and production. This package is structured for extremely easy use and deployment. Using Prefect Flows, training, evaluation, and model selection can be executed in a single line of code, enabling faster iteration and easier itergration of research into production pipelines.
 
@@ -73,7 +73,7 @@ Each perturbation type also supports custom term importance sampling, e.g. as ge
 ```(How, 0.179), (many, 0.254), (species, 0.123), (of, 0.03), (plants, 0.136) (were, 0.039), (recorded, 0.067), (in, 0.012), (Egypt, 0.159)```
 
 ## ML Flows
-Using the Prefect library, Doggmenetator makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also supports rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently. You can even get training results reported directly in Slack!!!
+Using the Prefect library, Doggmenetator makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also supports rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently. You can even get training results (reported directly in Slack)[https://docs.prefect.io/core/advanced_tutorials/slack-notifications.html]!!!
 
 # Installation
 Our entity-aware data augmentations make use of the John Snow Labs [spark-nlp](https://github.com/JohnSnowLabs/spark-nlp) library, which requires pyspark. To enable this feature, make sure Java v8 is set by default for pyspark compatibility:
