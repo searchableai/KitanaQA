@@ -23,7 +23,7 @@ jobs:
       - run:
           name: unzip vectors file
           command: |
-            unzip src/KatanaQA/support/counter-fitted-vectors.txt.zip -d src/KatanaQA/support
+            unzip src/katanaqa/support/counter-fitted-vectors.txt.zip -d src/katanaqa/support
 
       - run:
           name: install dependencies to run unittests
