@@ -11,8 +11,8 @@ from transformers.data.processors.squad import SquadV1Processor, SquadV2Processo
 from transformers import squad_convert_examples_to_features
 from prefect import Flow, task
 from prefect.utilities.notifications import slack_notifier
-from doggmentator.trainer.train import Trainer
-from doggmentator.trainer.alum_squad_processor import (
+from katanaqa.trainer.train import Trainer
+from katanaqa.trainer.alum_squad_processor import (
     alum_squad_convert_examples_to_features,
     AlumSquadV1Processor,
     AlumSquadV2Processor
@@ -46,7 +46,7 @@ def load_and_cache_examples(
 
     Parameters
     ----------
-    args : doggmentator.trainer.arguments.ModelArguments
+    args : katanaqa.trainer.arguments.ModelArguments
         A set of arguments related to the model. Specifically, the following arguments are used in this function:
         - args.train_file_path : str
             Path to the training data file
@@ -200,7 +200,7 @@ def eval_task(args):
     Parameters
     ----------
     args : tuple
-        A tuple including the ModelArguments (doggmentator.trainer.arguments.ModelArguments) and TrainingArguments (transformers.training_args.TrainingArguments). Specifically, the following arguments from the ModelArguments are used in this function:
+        A tuple including the ModelArguments (katanaqa.trainer.arguments.ModelArguments) and TrainingArguments (transformers.training_args.TrainingArguments). Specifically, the following arguments from the ModelArguments are used in this function:
         - eval_all_checkpoints : bool
               Evaluate all checkpoint found in the output_dir, matching the pattern `checkpoint-(traing_step)`
         - model_name_or_path : str
@@ -325,7 +325,7 @@ def train_task(args, model, tokenizer, train_dataset):
     Parameters
     ----------
     args : tuple
-        A tuple including the ModelArguments (doggmentator.trainer.arguments.ModelArguments) and TrainingArguments (transformers.training_args.TrainingArguments). Specifically, the following arguments from the ModelArguments are used in this function:
+        A tuple including the ModelArguments (katanaqa.trainer.arguments.ModelArguments) and TrainingArguments (transformers.training_args.TrainingArguments). Specifically, the following arguments from the ModelArguments are used in this function:
         - model_name_or_path : str
               Path to pretrained model or model identifier from huggingface.co/models
         The following arguments from the TrainingArguments are used in this function:

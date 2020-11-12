@@ -16,9 +16,9 @@ from transformers import (
     HfArgumentParser,
     TrainingArguments,
 )
-from doggmentator.trainer.arguments import ModelArguments
-from doggmentator.trainer.train import Trainer
-from doggmentator.trainer.utils import load_and_cache_examples
+from katanaqa.trainer.arguments import ModelArguments
+from katanaqa.trainer.train import Trainer
+from katanaqa.trainer.utils import load_and_cache_examples
 
 
 MODEL_CLASSES = {
@@ -28,9 +28,9 @@ MODEL_CLASSES = {
 }
 
 TRAIN_PATH = pkg_resources.resource_filename(
-            'doggmentator', 'support/unittest-squad.json')
+            'katanaqa', 'support/unittest-squad.json')
 EVAL_PATH = pkg_resources.resource_filename(
-            'doggmentator', 'support/unittest-squad.json')
+            'katanaqa', 'support/unittest-squad.json')
 
 
 class dotdict(dict):

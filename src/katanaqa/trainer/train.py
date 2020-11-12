@@ -21,8 +21,8 @@ from transformers.file_utils import is_apex_available
 from transformers.data.processors.squad import SquadResult
 from transformers.data.metrics.squad_metrics import squad_evaluate, compute_predictions_logits
 
-from doggmentator.trainer.custom_schedulers import get_custom_exp, get_custom_linear
-from doggmentator import get_logger
+from katanaqa.trainer.custom_schedulers import get_custom_exp, get_custom_linear
+from katanaqa import get_logger
 
 # Init logging
 logger = get_logger()

@@ -3,7 +3,7 @@ import unittest
 import pkg_resources
 import json
 from transformers.data.processors.squad import SquadResult, SquadV1Processor, SquadV2Processor, squad_convert_examples_to_features
-from doggmentator.augment.augment_squad import SQuADDataset
+from katanaqa.augment.augment_squad import SQuADDataset
 
 class AugSquadTester:
     def __init__(
@@ -29,7 +29,7 @@ class AugSquadTester:
 
         # Load test data
         data_file = pkg_resources.resource_filename(
-            'doggmentator', 'support/train-v1.1.json')
+            'katanaqa', 'support/train-v1.1.json')
         with open(data_file, 'r') as f:
             examples = json.load(f)
 
