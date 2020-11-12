@@ -16,8 +16,8 @@ def _check_java():
 
 def _get_requirements():
     """
-    Here we check the Java version for compatibility with pyspark/spark-nlp.
-    If incompatible, we skip the spark-nlp install, which deactivates
+    Here we check the local Java version for compatibility with pyspark/spark-nlp.
+    If incompatible, we skip the pyspark/spark-nlp installs, which deactivates
     entity-aware features at runtime.
     """
     java_compat = _check_java()
@@ -45,7 +45,7 @@ setup(
     url='https://github.com/searchableai/KatanaQA',
     author='Senzeyu Zhang, Abijith Vijayendra, Aaron Sisto',
     author_email='aaron@searchable.ai',
-    version='0.1',
+    version='0.1.0',
     package_dir={"":"src"},
     python_requires=">=3.6.0",
     packages=find_packages("src"),
