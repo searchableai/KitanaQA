@@ -41,8 +41,8 @@ def _get_requirements():
         
  
 setup(
-    name='Doggmentator',
-    url='https://github.com/searchableai/doggmentator',
+    name='KatanaQA',
+    url='https://github.com/searchableai/KatanaQA',
     author='Senzeyu Zhang, Abijith Vijayendra, Aaron Sisto',
     author_email='aaron@searchable.ai',
     version='0.1',
@@ -59,6 +59,6 @@ setup(
     },
     description='Data augmentation for language models',
     package_data={
-        'doggmentator':['support/*.txt','support/*.json']
+        'katanaqa':['support/*.txt','support/*.json']
     },
 )
