@@ -20,7 +20,7 @@ Doggmentator is an adversarial training and data augmentation framework for fine
 
 ## *Why Doggmentator?*
 While NLP models have made incredible progress on curated question-answer datasets in recent years, they are still brittle and unpredictable in production environments, making productization and enterprise adoption problematic. Doggmentator provides resources to "robustify" Transformer-based question-answer models against many types of natural and synthetic noise. The major features are:
-1. **Adversarial Training** can increase both robustness and performance of fine-tuned Transformer QA models. Here, we implement an embedding-space perturbation method to simulate synthetic noise in model inputs. Comparisons to baselines like BERT-base show remarkable performance gains:
+1. **Adversarial Training** can increase both robustness and performance of fine-tuned Transformer QA models. Here, we implement *virtual adversarial training*, which introduces embedding-space perturbations during fine-tuning to encourage the model to produce more stable results in the presence of noisy inputs.
 
   Our experiments with BERT finetuned on the SQuAD v1.1 question answering dataset show a marked improvement in f1 and em scores:
 
@@ -36,7 +36,7 @@ While NLP models have made incredible progress on curated question-answer datase
 # Features
 
 ## Adversarial Training
-Our implementation is based on the smoothness-inducing adversarial regularization approach, proposed [here](https://arxiv.org/pdf/1911.03437.pdf). We have introduced a number of updates to the formalism and added additional features like adversarial hyperparameter scheduling, and support for fp16 adversarial training.
+Our implementation is based on the smoothness-inducing regularization approach proposed [here](https://arxiv.org/pdf/1605.07725.pdf). We have updated the implementation for fine-tuning on question-answer datasets, and added additional features like adversarial hyperparameter scheduling, and support for mixed-precision training.
 
 ## Adversarial Attack
 A key measure of robustness in neural networks is the so-called white-box adversarial attack. In the context of Transformer-based Question-Answer models, this attack seeks to inject noise into the model's input embeddings and assess performance on the original labels. Here, we implement the projected gradient descent (PGD) attack mechanism, bounded by the norm-ball. Metrics can be calculated for non-adversarial and adversarial evaluation, making robustness studies more streamlined and accessible.
