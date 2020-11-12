@@ -1,4 +1,4 @@
-<p align="center"><img src="/assets/img/searchable-logo_full-lockup-horizontal_dark.png"></p>
+<p align="center"><img src="/assets/img/searchable-logo_full-lockup-horizontal_dark.png" width="460"></p>
 &nbsp
 <h1 align="center">Doggmentator</h1>
 <p align="center"><b>Adversarial Training and Data Augmentation for Robust Question-Answering</b></p>
