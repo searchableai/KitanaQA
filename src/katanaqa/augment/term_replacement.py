@@ -24,8 +24,8 @@ try:
 except Exception as e:
     SPARK_NLP_ENABLED = False
 
-from doggmentator.augment.generators import SynonymReplace, MisspReplace, MLMSynonymReplace
-from doggmentator import get_logger
+from katanaqa.augment.generators import SynonymReplace, MisspReplace, MLMSynonymReplace
+from katanaqa import get_logger
 
 # init logging
 logger = get_logger()

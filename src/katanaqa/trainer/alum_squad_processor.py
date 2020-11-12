@@ -15,7 +15,7 @@ from transformers.data.processors.squad import (
 import numpy as np
 from tqdm import tqdm
 
-from doggmentator import get_logger
+from katanaqa import get_logger
 
 # Store the tokenizers which insert 2 separators tokens
 MULTI_SEP_TOKENS_TOKENIZERS_SET = {"roberta", "camembert", "bart"}

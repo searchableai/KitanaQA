@@ -1,6 +1,6 @@
 import pytest
 import unittest
-from doggmentator.augment.generators import BaseGenerator, MisspReplace, SynonymReplace, MLMSynonymReplace
+from katanaqa.augment.generators import BaseGenerator, MisspReplace, SynonymReplace, MLMSynonymReplace
 
 class TestGenerators(unittest.TestCase):
     def test_valid_input(self):

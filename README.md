@@ -1,7 +1,7 @@
 <p align="center"><img src="/assets/img/searchable-logo_full-lockup-horizontal_dark.png" width="460"></p>
 &nbsp
-<h1 align="center">Doggmentator</h1>
-<p align="center"><b>Adversarial Training and Data Augmentation for Robust Question-Answering</b></p>
+<h1 align="center">KatanaQA</h1>
+<p align="center"><b>[A]dversarial [T]raining [AN]d [A]ugmentation for [Q]uestion-[A]nswering</b></p>
 <p align="center">
   <a href="#about">About</a> •
   <a href="#features">Features</a> •
@@ -11,16 +11,16 @@
   <br> <br>
 </p>
 
-[![CircleCI](https://circleci.com/gh/searchableai/Doggmentator.svg?style=shield&circle-token=de6470b621d1b07e54466dd087b85b80bcedf36c)](https://github.com/searchableai/Doggmentator)
+[![CircleCI](https://circleci.com/gh/searchableai/KatanaQA.svg?style=shield&circle-token=de6470b621d1b07e54466dd087b85b80bcedf36c)](https://github.com/searchableai/KatanaQA)
 
 # About
 
-Doggmentator is an adversarial training and data augmentation framework for fine-tuning NLP language models on question-answering datasets
+KatanaQA is an adversarial training and data augmentation framework for fine-tuning Transformer-based language models on question-answering datasets
 
 
-## *Why Doggmentator?*
-While NLP models have made incredible progress on curated question-answer datasets in recent years, they are still brittle and unpredictable in production environments, making productization and enterprise adoption problematic. Doggmentator provides resources to "robustify" Transformer-based question-answer models against many types of natural and synthetic noise. The major features are:
-1. **Adversarial Training** can increase both robustness and performance of fine-tuned Transformer QA models. Here, we implement an embedding-space perturbation method to simulate synthetic noise in model inputs. Comparisons to baselines like BERT-base show remarkable performance gains:
+## *Why KatanaQA?*
+While NLP models have made incredible progress on curated question-answer datasets in recent years, they are still brittle and unpredictable in production environments, making productization and enterprise adoption problematic. KatanaQA provides resources to "robustify" Transformer-based question-answer models against many types of natural and synthetic noise. The major features are:
+1. **Adversarial Training** can increase both robustness and performance of fine-tuned Transformer QA models. Here, we implement *virtual adversarial training*, which introduces embedding-space perturbations during fine-tuning to encourage the model to produce more stable results in the presence of noisy inputs.
 
   Our experiments with BERT finetuned on the SQuAD v1.1 question answering dataset show a marked improvement in f1 and em scores:
 
@@ -29,14 +29,14 @@ While NLP models have made incredible progress on curated question-answer datase
   BERT-base | 80.8 | 88.5
   **BERT-base (ALUM)** | **81.97** | **88.92**
 
-2. **Augment your dataset** to increase model generalizability and robustness using token-level perturbations. While Adversarial Training provides some measure of robustness against bounded perturbations, Augmentation can accomodate a wide range of naturally-occuring noise in user input. We provide tools to augment existing SQuAD-like datasets by perturbing the examples along a number of different dimensions, including synonym replacement, misspelling, and deletion.
+2. **Augment Your Dataset** to increase model generalizability and robustness using token-level perturbations. While Adversarial Training provides some measure of robustness against bounded perturbations, Augmentation can accomodate a wide range of naturally-occuring noise in user input. We provide tools to augment existing SQuAD-like datasets by perturbing the examples along a number of different dimensions, including synonym replacement, misspelling, and deletion.
 
 3. **Workflow Automation** to prototype robust NLP models faster for research and production. This package is structured for extremely easy use and deployment. Using Prefect Flows, training, evaluation, and model selection can be executed in a single line of code, enabling faster iteration and easier itergration of research into production pipelines.
 
 # Features
 
 ## Adversarial Training
-Our implementation is based on the smoothness-inducing adversarial regularization approach, proposed [here](https://arxiv.org/pdf/1911.03437.pdf). We have introduced a number of updates to the formalism and added additional features like adversarial hyperparameter scheduling, and support for fp16 adversarial training.
+Our implementation is based on the smoothness-inducing regularization approach proposed [here](https://arxiv.org/pdf/1605.07725.pdf). We have updated the implementation for fine-tuning on question-answer datasets, and added additional features like adversarial hyperparameter scheduling, and support for mixed-precision training.
 
 ## Adversarial Attack
 A key measure of robustness in neural networks is the so-called white-box adversarial attack. In the context of Transformer-based Question-Answer models, this attack seeks to inject noise into the model's input embeddings and assess performance on the original labels. Here, we implement the projected gradient descent (PGD) attack mechanism, bounded by the norm-ball. Metrics can be calculated for non-adversarial and adversarial evaluation, making robustness studies more streamlined and accessible.
@@ -73,7 +73,7 @@ Each perturbation type also supports custom term importance sampling, e.g. as ge
 ```(How, 0.179), (many, 0.254), (species, 0.123), (of, 0.03), (plants, 0.136) (were, 0.039), (recorded, 0.067), (in, 0.012), (Egypt, 0.159)```
 
 ## ML Flows
-Using the Prefect library, Doggmenetator makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also supports rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently. You can even get training results reported directly in Slack!!!
+Using the Prefect library, Doggmenetator makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also supports rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently. You can even get training results [reported directly in Slack](https://docs.prefect.io/core/advanced_tutorials/slack-notifications.html)!!!
 
 # Installation
 Our entity-aware data augmentations make use of the John Snow Labs [spark-nlp](https://github.com/JohnSnowLabs/spark-nlp) library, which requires pyspark. To enable this feature, make sure Java v8 is set by default for pyspark compatibility:
@@ -105,10 +105,10 @@ We make use of the following models and their respective tokenizers and configur
 - BERT
 - DistilBERT
 
-### Contributing to Doggmentator
+### Contributing to KatanaQA
 
 We welcome suggestions and contributions! Submit an issue or pull request and we will do our best to respond in a timely manner.
-See [CONTRIBUTING.md](https://github.com/searchableai/Doggmentator/blob/master/CONTRIBUTING.md) for detailed information on contributing.
+See [CONTRIBUTING.md](https://github.com/searchableai/KatanaQA/blob/master/CONTRIBUTING.md) for detailed information on contributing.
 
 ### Thanks!
 - John Snow Labs
