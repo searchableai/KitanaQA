@@ -1,7 +1,7 @@
 <p align="center"><img src="/assets/img/searchable-logo_full-lockup-horizontal_dark.png" width="460"></p>
 &nbsp
-<h1 align="center">Doggmentator</h1>
-<p align="center"><b>Adversarial Training and Data Augmentation for Robust Question-Answering</b></p>
+<h1 align="center">KatanaQA</h1>
+<p align="center"><b>[A]dversarial [T]raining [AN]d [A]ugmentation for [Q]uestion-[A]nswering</b></p>
 <p align="center">
   <a href="#about">About</a> •
   <a href="#features">Features</a> •
@@ -11,15 +11,15 @@
   <br> <br>
 </p>
 
-[![CircleCI](https://circleci.com/gh/searchableai/Doggmentator.svg?style=shield&circle-token=de6470b621d1b07e54466dd087b85b80bcedf36c)](https://github.com/searchableai/Doggmentator)
+[![CircleCI](https://circleci.com/gh/searchableai/KatanaQA.svg?style=shield&circle-token=de6470b621d1b07e54466dd087b85b80bcedf36c)](https://github.com/searchableai/KatanaQA)
 
 # About
 
-Doggmentator is an adversarial training and data augmentation framework for fine-tuning NLP language models on question-answering datasets
+KatanaQA is an adversarial training and data augmentation framework for fine-tuning Transformer-based language models on question-answering datasets
 
 
-## *Why Doggmentator?*
-While NLP models have made incredible progress on curated question-answer datasets in recent years, they are still brittle and unpredictable in production environments, making productization and enterprise adoption problematic. Doggmentator provides resources to "robustify" Transformer-based question-answer models against many types of natural and synthetic noise. The major features are:
+## *Why KatanaQA?*
+While NLP models have made incredible progress on curated question-answer datasets in recent years, they are still brittle and unpredictable in production environments, making productization and enterprise adoption problematic. KatanaQA provides resources to "robustify" Transformer-based question-answer models against many types of natural and synthetic noise. The major features are:
 1. **Adversarial Training** can increase both robustness and performance of fine-tuned Transformer QA models. Here, we implement *virtual adversarial training*, which introduces embedding-space perturbations during fine-tuning to encourage the model to produce more stable results in the presence of noisy inputs.
 
   Our experiments with BERT finetuned on the SQuAD v1.1 question answering dataset show a marked improvement in f1 and em scores:
@@ -105,10 +105,10 @@ We make use of the following models and their respective tokenizers and configur
 - BERT
 - DistilBERT
 
-### Contributing to Doggmentator
+### Contributing to KatanaQA
 
 We welcome suggestions and contributions! Submit an issue or pull request and we will do our best to respond in a timely manner.
-See [CONTRIBUTING.md](https://github.com/searchableai/Doggmentator/blob/master/CONTRIBUTING.md) for detailed information on contributing.
+See [CONTRIBUTING.md](https://github.com/searchableai/KatanaQA/blob/master/CONTRIBUTING.md) for detailed information on contributing.
 
 ### Thanks!
 - John Snow Labs
