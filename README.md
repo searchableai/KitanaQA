@@ -43,7 +43,7 @@ A key measure of robustness in neural networks is the so-called white-box advers
 
 ## Data Augmentation
 The following perturbation methods are available to augment SQuAD-like data:
-- Synonym Replacement (SR) via 1) constrained [word2vec](https://arxiv.org/pdf/1603.00892.pdf), and 2) MLM using BERT
+- Synonym Replacement (SR) via 1) [constrained word2vec](https://arxiv.org/pdf/1603.00892.pdf), and 2) MLM using BERT
 ```diff
 - (original)  How many species of plants were *recorded* in Egypt?
 + (augmented) How many species of plants were *registered* in Egypt?
