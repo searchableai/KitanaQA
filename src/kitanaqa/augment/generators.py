@@ -1,5 +1,6 @@
 import pkg_resources
 import re
+import os
 import random
 import itertools
 import re
@@ -230,6 +231,12 @@ class SynonymReplace(BaseGenerator):
         """
         data_file = pkg_resources.resource_filename(
             'kitanaqa', 'support/counter-fitted-vectors.txt')
+        if not os.path.isfile(data_file):
+            logger.info('Extracting word vectors...')
+            import zipfile
+            with zipfile.ZipFile(data_file+'.zip',"r") as zip_f:
+                outfile = '/'.join(data_file.split('/')[:-1])
+                zip_f.extractall(outfile)
 
         logger.debug(
             '{}: loading pkg data {}'.format(
