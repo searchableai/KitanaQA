@@ -152,7 +152,7 @@ class RepeatTerms():
     repeat_terms(sentence, num_terms, num_output_sents)
       Generate synonyms for an input term 
     """
-    def __init__(self):
+    def __init__(self, use_stop: bool=True):
         """Instantiate a ReplaceTerms object
         Parameters
         ----------
@@ -272,7 +272,7 @@ class DropTerms():
     drop_terms(sentence, num_terms, num_output_sents)
       Generate synonyms for an input term 
     """
-    def __init__(self):
+    def __init__(self, use_stop: bool=True):
         """Instantiate a DropTerms object
         Parameters
         ----------
