@@ -6,13 +6,14 @@ import requests
 import glob
 import numpy as np
 from typing import Tuple
+from dataclasses import replace
 from torch.utils.data import Dataset
 from transformers.data.processors.squad import SquadV1Processor, SquadV2Processor
 from transformers import squad_convert_examples_to_features
 from prefect import Flow, task
 from prefect.utilities.notifications import slack_notifier
-from katanaqa.trainer.train import Trainer
-from katanaqa.trainer.alum_squad_processor import (
+from kitanaqa.trainer.train import Trainer
+from kitanaqa.trainer.alum_squad_processor import (
     alum_squad_convert_examples_to_features,
     AlumSquadV1Processor,
     AlumSquadV2Processor
@@ -26,11 +27,15 @@ from transformers import (
     BertConfig,
     BertForQuestionAnswering,
     BertTokenizer,
+    DistilBertConfig,
+    DistilBertForQuestionAnswering,
+    DistilBertTokenizer,
 )
 
 MODEL_CLASSES = {
     "albert": (AlbertConfig, AlbertForQuestionAnswering, AlbertTokenizer),
     "bert": (BertConfig, BertForQuestionAnswering, BertTokenizer),
+    "distilbert": (DistilBertConfig, DistilBertForQuestionAnswering, DistilBertTokenizer),
 }
 
 logger = logging.getLogger(__name__)
@@ -46,7 +51,7 @@ def load_and_cache_examples(
 
     Parameters
     ----------
-    args : katanaqa.trainer.arguments.ModelArguments
+    args : kitanaqa.trainer.arguments.ModelArguments
         A set of arguments related to the model. Specifically, the following arguments are used in this function:
         - args.train_file_path : str
             Path to the training data file
@@ -200,7 +205,7 @@ def eval_task(args):
     Parameters
     ----------
     args : tuple
-        A tuple including the ModelArguments (katanaqa.trainer.arguments.ModelArguments) and TrainingArguments (transformers.training_args.TrainingArguments). Specifically, the following arguments from the ModelArguments are used in this function:
+        A tuple including the ModelArguments (kitanaqa.trainer.arguments.ModelArguments) and TrainingArguments (transformers.training_args.TrainingArguments). Specifically, the following arguments from the ModelArguments are used in this function:
         - eval_all_checkpoints : bool
               Evaluate all checkpoint found in the output_dir, matching the pattern `checkpoint-(traing_step)`
         - model_name_or_path : str
@@ -253,7 +258,7 @@ def eval_task(args):
         checkpoints = [x for x in checkpoints if 'checkpoint' in x]
     else:
         if not os.path.exists(model_args.model_name_or_path):
-            raise Exception("Must specify parameter model_name_or_path")
+            logger.warning("You are running a non-local model checkpoint. This may or may not be what you intended.")
         checkpoints = [model_args.model_name_or_path]
     for checkpoint in checkpoints:
         # Load model and tokenizer
@@ -268,11 +273,13 @@ def eval_task(args):
         )
 
         # Initialize the Trainer
+        eval_args = replace(training_args, do_train=False)
         trainer = Trainer(
+            model_args=model_args,
             data_collator=None,
             model=model,
             tokenizer=tokenizer,
-            args=training_args,
+            args=eval_args,
             prediction_loss_only=True,
         )
 
@@ -287,12 +294,11 @@ def eval_task(args):
         for predict_set in examples:
             results = {}
             model_idx = checkpoint.split("-")[-1]
-            print(f'The checkpoint check: {model_idx}')
             if model_args.do_adv_eval:
                 results[model_idx] = {
                                     'model_args': model_args,
-                                    'training_args':training_args,
-                                    'eval':trainer.adv_evaluate(
+                                    'training_args': eval_args,
+                                    'eval': trainer.adv_evaluate(
                                             checkpoint,
                                             model_args,
                                             tokenizer,
@@ -303,8 +309,8 @@ def eval_task(args):
             else:
                 results[model_idx] = {
                                     'model_args': model_args,
-                                    'training_args':training_args,
-                                    'eval':trainer.evaluate(
+                                    'training_args': eval_args,
+                                    'eval': trainer.evaluate(
                                             checkpoint,
                                             model_args,
                                             tokenizer,
@@ -325,7 +331,7 @@ def train_task(args, model, tokenizer, train_dataset):
     Parameters
     ----------
     args : tuple
-        A tuple including the ModelArguments (katanaqa.trainer.arguments.ModelArguments) and TrainingArguments (transformers.training_args.TrainingArguments). Specifically, the following arguments from the ModelArguments are used in this function:
+        A tuple including the ModelArguments (kitanaqa.trainer.arguments.ModelArguments) and TrainingArguments (transformers.training_args.TrainingArguments). Specifically, the following arguments from the ModelArguments are used in this function:
         - model_name_or_path : str
               Path to pretrained model or model identifier from huggingface.co/models
         The following arguments from the TrainingArguments are used in this function:

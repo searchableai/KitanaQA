@@ -21,8 +21,8 @@ from transformers.file_utils import is_apex_available
 from transformers.data.processors.squad import SquadResult
 from transformers.data.metrics.squad_metrics import squad_evaluate, compute_predictions_logits
 
-from katanaqa.trainer.custom_schedulers import get_custom_exp, get_custom_linear
-from katanaqa import get_logger
+from kitanaqa.trainer.custom_schedulers import get_custom_exp, get_custom_linear
+from kitanaqa import get_logger
 
 # Init logging
 logger = get_logger()
@@ -433,7 +433,13 @@ class Trainer(HFTrainer):
         all_results = []
         start_time = timeit.default_timer()
 
-        _embed_layer = self.model.bert.get_input_embeddings()
+        if self.params.model_type == 'bert':
+            _embed_layer = self.model.bert.get_input_embeddings()
+        elif self.params.model_type == 'distilbert':
+            _embed_layer = self.model.distilbert.get_input_embeddings()
+        elif self.params.model_type == 'albert':
+            _embed_layer = self.model.albert.get_input_embeddings()
+
         self.model.eval()
         for batch in tqdm(eval_dataloader, desc="Evaluating"):
             batch = tuple(t.to(self.args.device) for t in batch)
@@ -457,6 +463,9 @@ class Trainer(HFTrainer):
                     "inputs_embeds": adv_input_embedding,
                 }
 
+                if self.params.model_type in ["xlm", "roberta", "distilbert"]:
+                    del inputs["token_type_ids"]
+
                 intermed_adv_outputs = self.model(**inputs)
 
                 adv_loss = intermed_adv_outputs[0]
@@ -478,6 +487,10 @@ class Trainer(HFTrainer):
                     "token_type_ids": batch[2],
                     "inputs_embeds": input_embedding + _delta
                 }
+
+                if self.params.model_type in ["xlm", "roberta", "distilbert"]:
+                    del inputs["token_type_ids"]
+
                 adv_outputs = self.model(**inputs)
 
                 example_indices = batch[5]

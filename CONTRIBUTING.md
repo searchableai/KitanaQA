@@ -1,10 +1,11 @@
-How to contribute to Doggmentator?
+How to contribute to KitanaQA?
 Everyone is welcome to contribute, and we value everybody's contribution. Code is thus not the only way to help the community. Answering questions, helping others, reaching out and improving the documentations are immensely valuable to the community.
 
 It also helps us if you spread the word: reference the library from blog posts on the awesome projects it made possible, shout out on Twitter every time it has helped you, or simply star the repo to say "thank you".
 
 You can contribute in so many ways!
-There are 4 ways you can contribute to Doggmentator:
+
+There are 4 ways you can contribute to KitanaQA:
 
 Fixing outstanding issues with the existing code;
 Implementing new models;
@@ -16,7 +17,8 @@ Submitting a new issue or feature request
 Do your best to follow these guidelines when submitting an issue or a feature request. It will make it easier for us to come back to you quickly and with good feedback.
 
 Did you find a bug?
-Our goal is to keep Doggmentator robust and reliable thanks to the users who notify us of the problems they encounter. So thank you for reporting an issue.
+
+Our goal is to keep KitanaQA robust and reliable thanks to the users who notify us of the problems they encounter. So thank you for reporting an issue.
 
 First, we would really appreciate it if you could make sure the bug was not already reported (use the search bar on Github under Issues).
 

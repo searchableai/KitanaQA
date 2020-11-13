@@ -1,5 +1,4 @@
 import pkg_resources
-import sparknlp
 import re
 import random
 import itertools
@@ -11,12 +10,8 @@ import numpy as np
 from typing import List, Dict, Tuple
 from numpy import dot
 from numpy.linalg import norm
-from sparknlp.pretrained import PretrainedPipeline
-from sparknlp.annotator import *
-from sparknlp.common import RegexRule
-from sparknlp.base import *
 from transformers import AutoTokenizer, BertForMaskedLM
-from katanaqa import get_logger
+from kitanaqa import get_logger
 
 # init logging
 logger = get_logger()
@@ -92,7 +87,7 @@ class MisspReplace(BaseGenerator):
             brikbeck (https://www.dcs.bbk.ac.uk/~ROGER/corpora.html)
         """
         data_file = pkg_resources.resource_filename(
-            'katanaqa', 'support/missp.json')
+            'kitanaqa', 'support/missp.json')
         logger.debug(
             '{}: loading pkg data {}'.format(
                 __file__.split('/')[-1], data_file)
@@ -234,7 +229,7 @@ class SynonymReplace(BaseGenerator):
                 https://arxiv.org/pdf/1603.00892.pdf
         """
         data_file = pkg_resources.resource_filename(
-            'katanaqa', 'support/counter-fitted-vectors.txt')
+            'kitanaqa', 'support/counter-fitted-vectors.txt')
 
         logger.debug(
             '{}: loading pkg data {}'.format(

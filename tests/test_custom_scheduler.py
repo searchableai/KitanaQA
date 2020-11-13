@@ -1,7 +1,7 @@
 import pytest
 import unittest
 import types
-from katanaqa.trainer.custom_schedulers import custom_scheduler, get_custom_exp, get_custom_linear
+from kitanaqa.trainer.custom_schedulers import custom_scheduler, get_custom_exp, get_custom_linear
 
 class TestGenerators(unittest.TestCase):
     def test_exp_scheduler(self):
