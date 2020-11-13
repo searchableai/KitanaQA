@@ -24,8 +24,8 @@ try:
 except Exception as e:
     SPARK_NLP_ENABLED = False
 
-from katanaqa.augment.generators import SynonymReplace, MisspReplace, MLMSynonymReplace
-from katanaqa import get_logger
+from kitanaqa.augment.generators import SynonymReplace, MisspReplace, MLMSynonymReplace
+from kitanaqa import get_logger
 
 # init logging
 logger = get_logger()
@@ -152,9 +152,14 @@ class RepeatTerms():
     repeat_terms(sentence, num_terms, num_output_sents)
       Generate synonyms for an input term 
     """
-    def __init__(self):
-        """Instantiate a ReplaceTerms object"""
-        pass
+    def __init__(self, use_stop: bool=True):
+        """Instantiate a ReplaceTerms object
+        Parameters
+        ----------
+        use_stop : Optional(bool)
+            Flag specifying whether to only apply perturbation to stopwords. If True, when calculating the sampling weights for any perturbation, non-stopwords will be zeroed. The default value is True.
+        """
+        self.use_stop = use_stop
 
     def repeat_terms(
             self,
@@ -200,7 +205,10 @@ class RepeatTerms():
         # Create list of candidate repeat words
         repeat_word_indices = []
         for idx, word in enumerate(word_tokens):
-            if word in remove_list:
+            if self.use_stop:
+                if word in remove_list:
+                    repeat_word_indices.append(idx)
+            else:
                 repeat_word_indices.append(idx)
 
         # Ensure num_terms does not exceed possible terms
@@ -264,9 +272,14 @@ class DropTerms():
     drop_terms(sentence, num_terms, num_output_sents)
       Generate synonyms for an input term 
     """
-    def __init__(self):
-        """Instantiate a DropTerms object"""
-        pass
+    def __init__(self, use_stop: bool=True):
+        """Instantiate a DropTerms object
+        Parameters
+        ----------
+        use_stop : Optional(bool)
+            Flag specifying whether to only apply perturbation to stopwords. If True, when calculating the sampling weights for any perturbation, non-stopwords will be zeroed. The default value is True.
+        """
+        self.use_stop = use_stop
 
     def drop_terms(
             self,
@@ -312,7 +325,10 @@ class DropTerms():
         # Create list of candidate drop words
         drop_word_indices = []
         for idx, word in enumerate(word_tokens):
-            if word in remove_list:
+            if self.use_stop:
+                if word in remove_list:
+                    drop_word_indices.append(idx)
+            else:
                 drop_word_indices.append(idx)
 
         # Ensure num_terms does not exceed possible terms

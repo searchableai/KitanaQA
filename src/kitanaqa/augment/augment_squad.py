@@ -8,8 +8,8 @@ from torch.utils.data import DataLoader
 import math
 from collections import Counter
 from datetime import datetime
-from katanaqa.augment.term_replacement import *
-from katanaqa import get_logger
+from kitanaqa.augment.term_replacement import *
+from kitanaqa import get_logger
 
 
 logger = get_logger()

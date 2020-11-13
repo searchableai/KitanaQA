@@ -21,11 +21,11 @@ from transformers import (
     DistilBertTokenizer,
 )
 
-from katanaqa.trainer.arguments import ModelArguments
-from katanaqa.trainer.utils import load_and_cache_examples, post_to_slack, build_flow
+from kitanaqa.trainer.arguments import ModelArguments
+from kitanaqa.trainer.utils import load_and_cache_examples, post_to_slack, build_flow
 from transformers.file_utils import is_apex_available
 
-from katanaqa import get_logger
+from kitanaqa import get_logger
 logger = get_logger()
 
 MODEL_CLASSES = {

@@ -1,7 +1,7 @@
 import pytest
 import unittest
-from katanaqa.augment.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms, RepeatTerms
-from katanaqa import get_logger
+from kitanaqa.augment.term_replacement import validate_inputs, get_scores, ReplaceTerms, DropTerms, RepeatTerms
+from kitanaqa import get_logger
 # init logging
 logger = get_logger()
 

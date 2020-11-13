@@ -9,7 +9,7 @@
     "predict_file_path" : "",
     "aug_file_path" : null,
     "do_aug" : false,
-    "do_alum" : true,
+    "do_alum" : false,
     "alpha" : 1,
     "do_lower_case" : true,
     "overwrite_output_dir" : true,

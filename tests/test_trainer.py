@@ -16,10 +16,9 @@ from transformers import (
     HfArgumentParser,
     TrainingArguments,
 )
-from katanaqa.trainer.arguments import ModelArguments
-from katanaqa.trainer.train import Trainer
-from katanaqa.trainer.utils import load_and_cache_examples
-
+from kitanaqa.trainer.arguments import ModelArguments
+from kitanaqa.trainer.train import Trainer
+from kitanaqa.trainer.utils import load_and_cache_examples
 
 MODEL_CLASSES = {
     "albert": (AlbertConfig, AlbertForQuestionAnswering, AlbertTokenizer),
@@ -28,10 +27,9 @@ MODEL_CLASSES = {
 }
 
 TRAIN_PATH = pkg_resources.resource_filename(
-            'katanaqa', 'support/unittest-squad.json')
+            'kitanaqa', 'support/unittest-squad.json')
 EVAL_PATH = pkg_resources.resource_filename(
-            'katanaqa', 'support/unittest-squad.json')
-
+            'kitanaqa', 'support/unittest-squad.json')
 
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""
@@ -58,6 +56,7 @@ class TrainerTester:
             eta,
             sigma,
             do_train,
+            do_adv_eval,
             do_eval,
             per_device_train_batch_size,
             per_device_eval_batch_size,
@@ -85,6 +84,7 @@ class TrainerTester:
             "eta": eta,
             "sigma": sigma,
             "do_train": do_train,
+            "do_adv_eval": do_adv_eval,
             "do_eval": do_eval,
             "per_device_train_batch_size": per_device_train_batch_size,
             "per_device_eval_batch_size": per_device_eval_batch_size,
@@ -227,6 +227,7 @@ def test_alum_train():
             "eta" : 1e-5,
             "sigma" : 1e-3,
             "do_train" : True,
+            "do_adv_eval" : False,
             "do_eval" : False,
             "per_device_train_batch_size" : 2,
             "per_device_eval_batch_size" : 1,
@@ -243,7 +244,8 @@ def test_alum_train():
         del trainer
         gc.collect()
 
-def _test_adv_eval():
+
+def test_adv_eval():
         hparams = {
             "model_type" : "distilbert",
             "model_name_or_path" : "distilbert-base-uncased",
@@ -274,6 +276,8 @@ def _test_adv_eval():
         }
         trainer = TrainerTester(**hparams)
         trainer._eval_adv_and_check_results()
+        del trainer
+        gc.collect()
 
 
 def test_regular_train():
@@ -293,6 +297,7 @@ def test_regular_train():
             "eta" : 1e-5,
             "sigma" : 1e-3,
             "do_train" : True,
+            "do_adv_eval" : False,
             "do_eval" : False,
             "per_device_train_batch_size" : 2,
             "per_device_eval_batch_size" : 1,
@@ -327,6 +332,7 @@ def test_regular_eval():
             "eta" : 1e-5,
             "sigma" : 1e-3,
             "do_train" : False,
+            "do_adv_eval" : False,
             "do_eval" : True,
             "per_device_train_batch_size" : 2,
             "per_device_eval_batch_size" : 1,

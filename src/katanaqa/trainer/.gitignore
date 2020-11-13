@@ -1,7 +1,0 @@
-cache/
-runs/
-data/
-wandb/
-outputs/
-*.ipynb
-args.json

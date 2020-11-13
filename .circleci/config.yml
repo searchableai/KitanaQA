@@ -5,7 +5,7 @@ jobs:
     machine:
       image: circleci/classic:201808-01
 
-    working_directory: ~/KatanaQA
+    working_directory: ~/KitanaQA
     steps:
       - checkout
       - run:
@@ -23,7 +23,7 @@ jobs:
       - run:
           name: unzip vectors file
           command: |
-            unzip src/katanaqa/support/counter-fitted-vectors.txt.zip -d src/katanaqa/support
+            unzip src/kitanaqa/support/counter-fitted-vectors.txt.zip -d src/kitanaqa/support
 
       - run:
           name: install dependencies to run unittests

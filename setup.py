@@ -41,9 +41,9 @@ def _get_requirements():
         
  
 setup(
-    name='KatanaQA',
-    url='https://github.com/searchableai/KatanaQA',
-    author='Senzeyu Zhang, Abijith Vijayendra, Aaron Sisto',
+    name='KitanaQA',
+    url='https://github.com/searchableai/KitanaQA',
+    author='Senzeyu Zhang, Mostafa Mirshekari, Aaron Sisto',
     author_email='aaron@searchable.ai',
     version='0.1.0',
     package_dir={"":"src"},
@@ -59,6 +59,6 @@ setup(
     },
     description='Data augmentation for language models',
     package_data={
-        'katanaqa':['support/*.txt','support/*.json']
+        'kitanaqa':['support/*.txt','support/*.json']
     },
 )
