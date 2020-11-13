@@ -43,7 +43,7 @@ def _get_requirements():
 setup(
     name='KitanaQA',
     url='https://github.com/searchableai/KitanaQA',
-    author='Senzeyu Zhang, Abijith Vijayendra, Aaron Sisto',
+    author='Senzeyu Zhang, Mostafa Mirshekari, Aaron Sisto',
     author_email='aaron@searchable.ai',
     version='0.1.0',
     package_dir={"":"src"},
