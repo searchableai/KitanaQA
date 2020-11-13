@@ -102,7 +102,7 @@ Install the package
 - [Adversarial Attack](examples/adversarial_attack)
 
 ## Models Supported
-We make use of the following models and their respective tokenizers and configurations provided by HuggingFace Inc.
+We make use of the following models and their respective tokenizers and configurations provided by Hugging Face Inc.
 - ALBERT
 - BERT
 - DistilBERT
