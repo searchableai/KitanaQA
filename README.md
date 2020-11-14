@@ -89,9 +89,9 @@ Install with pip:
 ```pip install kitanaqa```
 
 Install from source:  
-```git clone https://github.com/searchableai/KitanaQA.git```  
-```cd KitanaQA```  
-```python setup.py install```  
+```git clone https://github.com/searchableai/KitanaQA.git
+cd KitanaQA
+python setup.py install```  
 
 # Getting Started  
 To run training or evaluation from the commandline:
