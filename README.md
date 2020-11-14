@@ -73,11 +73,12 @@ Each perturbation type also supports custom term importance sampling, e.g. as ge
 ```(How, 0.179), (many, 0.254), (species, 0.123), (of, 0.03), (plants, 0.136) (were, 0.039), (recorded, 0.067), (in, 0.012), (Egypt, 0.159)```
 
 ## ML Flows
-Using the Prefect library, KitanaQA makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also supports rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently. You can even get results [reported directly in Slack](https://docs.prefect.io/core/advanced_tutorials/slack-notifications.html)!!!
+Using the Prefect library, KitanaQA makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also supports rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently. You can even get results [reported directly in Slack](https://docs.prefect.io/core/advanced_tutorials/slack-notifications.html)!
 
 # Installation
 Entity-aware data augmentations make use of the John Snow Labs [spark-nlp](https://github.com/JohnSnowLabs/spark-nlp) library, which requires pyspark. To enable this feature, make sure Java v8 is set by default for pyspark compatibility:  
-```sudo apt install openjdk-8-jdk
+```
+sudo apt install openjdk-8-jdk
 sudo update-alternatives --config java
 java -version
 ```
@@ -90,7 +91,8 @@ Install with pip:
 ```pip install kitanaqa```
 
 Install from source:  
-```git clone https://github.com/searchableai/KitanaQA.git
+```
+git clone https://github.com/searchableai/KitanaQA.git
 cd KitanaQA
 python setup.py install
 ```
@@ -98,7 +100,7 @@ python setup.py install
 # Getting Started  
 To run training or evaluation from the commandline:  
 ```python src/kitanaqa/trainer/run_pipeline.py --args=args.json```
-- See an example [args.json](examples/commandline/args.json)
+See an example [args.json](examples/commandline/args.json)
 
 # Examples
 
