@@ -76,26 +76,28 @@ Each perturbation type also supports custom term importance sampling, e.g. as ge
 Using the Prefect library, KitanaQA makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also supports rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently. You can even get results [reported directly in Slack](https://docs.prefect.io/core/advanced_tutorials/slack-notifications.html)!!!
 
 # Installation
-Entity-aware data augmentations make use of the John Snow Labs [spark-nlp](https://github.com/JohnSnowLabs/spark-nlp) library, which requires pyspark. To enable this feature, make sure Java v8 is set by default for pyspark compatibility:
-- ```sudo apt install openjdk-8-jdk```
-- ```sudo update-alternatives --config java```
-- ```java -version```
+Entity-aware data augmentations make use of the John Snow Labs [spark-nlp](https://github.com/JohnSnowLabs/spark-nlp) library, which requires pyspark. To enable this feature, make sure Java v8 is set by default for pyspark compatibility:  
+```sudo apt install openjdk-8-jdk
+sudo update-alternatives --config java
+java -version
+```
 
 It is recommended that you use a [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) when installing from pip or source. Virtualenv and Conda are good options.
 
 This package has been tested on Python 3.7+, PyTorch 1.5.1+ and transformers 1.3.1
 
-Install with pip:
+Install with pip:  
 ```pip install kitanaqa```
 
 Install from source:  
 ```git clone https://github.com/searchableai/KitanaQA.git
 cd KitanaQA
-python setup.py install```  
+python setup.py install
+```
 
 # Getting Started  
-To run training or evaluation from the commandline:
-- ```python src/kitanaqa/trainer/run_pipeline.py --args=args.json```
+To run training or evaluation from the commandline:  
+```python src/kitanaqa/trainer/run_pipeline.py --args=args.json```
 - See an example [args.json](examples/commandline/args.json)
 
 # Examples
