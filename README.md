@@ -81,7 +81,7 @@ Entity-aware data augmentations make use of the John Snow Labs [spark-nlp](https
 - ```sudo update-alternatives --config java```
 - ```java -version```
 
-It is recommended that you use a (virtual environment)[https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/] when installing from pip or source. Virtualenv and Conda are good options.
+It is recommended that you use a [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) when installing from pip or source. Virtualenv and Conda are good options.
 
 This package has been tested on Python 3.7+, PyTorch 1.5.1+ and transformers 1.3.1
 
