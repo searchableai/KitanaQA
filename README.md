@@ -99,7 +99,9 @@ python setup.py install
 
 # Getting Started  
 To run training or evaluation from the commandline:  
-```python src/kitanaqa/trainer/run_pipeline.py --args=args.json```
+```
+python src/kitanaqa/trainer/run_pipeline.py --args=args.json
+```
 See an example [args.json](examples/commandline/args.json)
 
 # Examples
