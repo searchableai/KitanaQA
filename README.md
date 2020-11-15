@@ -45,49 +45,64 @@ A key measure of robustness in neural networks is the so-called white-box advers
 The following perturbation methods are available to augment SQuAD-like data:
 - Synonym Replacement (SR) via 1) [constrained word2vec](https://arxiv.org/pdf/1603.00892.pdf), and 2) MLM using BERT
 ```diff
-- (original)  How many species of plants were *recorded* in Egypt?
-+ (augmented) How many species of plants were *registered* in Egypt?
+- (original)  How many species of plants were [recorded] in Egypt?
++ (augmented) How many species of plants were [registered] in Egypt?
 ```
 - Random Deletion (RD) using entity-aware term selection
 ```diff
-- (original)  How many species of plants *were* recorded in Egypt?
-+ (augmented) How many species of plants ** recorded in Egypt?
+- (original)  How many species of plants [were] recorded in Egypt?
++ (augmented) How many species of plants [] recorded in Egypt?
 ```
 - Random Repetition (RR) using entity-aware term selection
 ```diff
-- (original)  How many species of plants *were* recorded in Egypt?
-+ (augmented) How many species of plants *were were* recorded in Egypt?
+- (original)  How many species of plants [were] recorded in Egypt?
++ (augmented) How many species of plants [were were] recorded in Egypt?
 ```
 - Random Misspelling (RM) using open-source common misspellings datasets
     -- *sources: [wiki](https://en.wikipedia.org/wiki/Wikipedia:Lists_of_common_misspellings), [brikbeck](https://www.dcs.bbk.ac.uk/~ROGER/corpora.html)*
 ```diff
-- (original)  How *many* species of plants were recorded in Egypt?
-+ (augmented) How *mony* species of plants were recorded in Egypt?
+- (original)  How [many] species of plants were recorded in Egypt?
++ (augmented) How [mony] species of plants were recorded in Egypt?
 ```
 Perturbation types can be flexibly applied in combination with different frequencies for fine-grained control of natural noise profiles
 ```diff
-- (original)  How *many* species *of* plants *were* recorded in Egypt?
-+ (augmented) How *mony* species ** plants ** recorded in Egypt?
+- (original)  How [many] species [of] plants [were] recorded in Egypt?
++ (augmented) How [mony] species [] plants [] recorded in Egypt?
 ```
 Each perturbation type also supports custom term importance sampling, e.g. as generated using a MLM  
 ```(How, 0.179), (many, 0.254), (species, 0.123), (of, 0.03), (plants, 0.136) (were, 0.039), (recorded, 0.067), (in, 0.012), (Egypt, 0.159)```
 
 ## ML Flows
-Using the Prefect library, KitanaQA makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also supports rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently. You can even get results [reported directly in Slack](https://docs.prefect.io/core/advanced_tutorials/slack-notifications.html)!!!
+Using the Prefect library, KitanaQA makes it increadibly easy to combine different workflows for end-to-end training/evaluation/model selection. This system also supports rapid iteration in hyperparameter search by easily specifying each experimental condition and deploying independently. You can even get results [reported directly in Slack](https://docs.prefect.io/core/advanced_tutorials/slack-notifications.html)!
 
 # Installation
-Our entity-aware data augmentations make use of the John Snow Labs [spark-nlp](https://github.com/JohnSnowLabs/spark-nlp) library, which requires pyspark. To enable this feature, make sure Java v8 is set by default for pyspark compatibility:
-- ```sudo apt install openjdk-8-jdk```
-- ```sudo update-alternatives --config java```
-- ```java -version```
+Entity-aware data augmentations make use of the John Snow Labs [spark-nlp](https://github.com/JohnSnowLabs/spark-nlp) library, which requires pyspark. To enable this feature, make sure Java v8 is set by default for pyspark compatibility:  
+```
+sudo apt install openjdk-8-jdk
+sudo update-alternatives --config java
+java -version
+```
 
-Install the package
-- ```python setup.py install```
+It is recommended that you use a [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) when installing from pip or source. Virtualenv and Conda are good options.
 
-# Getting Started
-- To run training or evaluation from the commandline:
-- ```python src/kitanaqa/trainer/run_pipeline.py --args=args.json```
-- See an example [args.json](examples/commandline)
+This package has been tested on Python 3.7+, PyTorch 1.5.1+ and transformers 1.3.1
+
+Install with pip:  
+```pip install kitanaqa```
+
+Install from source:  
+```
+git clone https://github.com/searchableai/KitanaQA.git
+cd KitanaQA
+python setup.py install
+```
+
+# Getting Started  
+To run training or evaluation from the commandline:  
+```
+python src/kitanaqa/trainer/run_pipeline.py --args=args.json
+```
+See an example [args.json](examples/commandline/args.json)
 
 # Examples
 
