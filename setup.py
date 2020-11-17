@@ -30,7 +30,7 @@ def _get_requirements():
         'transformers==3.1.0',
         'prefect==0.13.4',
         'pendulum==2.0.5',
-        'dataclasses==0.6',
+        'dataclasses==0.6;python_version<"3.7"',
     ]
     if java_compat:
         installs += [
@@ -47,7 +47,7 @@ setup(
     author_email='aaron@searchable.ai',
     version='0.1.0',
     package_dir={"":"src"},
-    python_requires=">=3.7.0",
+    python_requires=">=3.6.0",
     packages=find_packages("src"),
     install_requires=_get_requirements(),
     extras_require={
