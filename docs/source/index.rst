@@ -1,46 +1,24 @@
-:github_url: https://github.com/searchableai/Doggmentator
+.. KitanaQA documentation master file, created by
+   sphinx-quickstart on Mon Feb  1 15:11:11 2021.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
 
-Doggmentator Documentation
-=======================================================================================
+Welcome to KitanaQA's documentation!
+====================================
 
-Doggmentator is a Python framework for adversarial training and data augmentation for pre-trained NLP language model training.
-
-
+Modules
+==================
 .. toctree::
-   :glob:
-   :maxdepth: 1
-   :caption: Quickstart
+   :maxdepth: 4
+   :caption: Contents:
 
-   quickstart
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Overview
-
-   overview
-
-.. toctree::
-   :maxdepth: 1
-   :caption: How to Configure
-
-   configure
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Walkthrough
-
-   walkthrough
+   doggmentator.augment
+   doggmentator.trainer
 
 
+Indices and tables
+==================
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Python API
-
-    trainer
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Contributing
-
-   contributing
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
