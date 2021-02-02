@@ -12,8 +12,8 @@ Modules
    :maxdepth: 4
    :caption: Contents:
 
-   doggmentator.augment
-   doggmentator.trainer
+   kitanaqa.augment
+   kitanaqa.trainer
 
 
 Indices and tables
