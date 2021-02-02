@@ -4,7 +4,7 @@ KitanaQA Data Augmentation
 Submodules
 ----------
 
-doggmentator.augment.augment\_squad module
+Squad Augmentation Module
 ------------------------------------------
 
 .. automodule:: doggmentator.augment.augment_squad
@@ -12,7 +12,7 @@ doggmentator.augment.augment\_squad module
    :undoc-members:
    :show-inheritance:
 
-doggmentator.augment.generators module
+Generators Module
 --------------------------------------
 
 .. automodule:: doggmentator.augment.generators
@@ -20,7 +20,7 @@ doggmentator.augment.generators module
    :undoc-members:
    :show-inheritance:
 
-doggmentator.augment.term\_replacement module
+Term Replacement Module
 ---------------------------------------------
 
 .. automodule:: doggmentator.augment.term_replacement
