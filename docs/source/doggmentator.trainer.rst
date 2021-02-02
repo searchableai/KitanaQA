@@ -1,9 +1,6 @@
 KitanaQA Trainer
 ============================
 
-Submodules
-----------
-
 Adversarial Squad Processor Module
 --------------------------------------------------
 
