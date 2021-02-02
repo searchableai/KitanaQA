@@ -1,4 +1,4 @@
-KitanaQA Augmentation Module
+KitanaQA Data Augmentation
 =============================
 
 Submodules
