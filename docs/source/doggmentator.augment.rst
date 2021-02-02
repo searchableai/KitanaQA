@@ -1,9 +1,6 @@
 KitanaQA Data Augmentation
 =============================
 
-Submodules
-----------
-
 Squad Augmentation Module
 ------------------------------------------
 
