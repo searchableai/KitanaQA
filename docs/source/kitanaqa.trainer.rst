@@ -4,7 +4,7 @@ KitanaQA Trainer
 Adversarial Squad Processor Module
 --------------------------------------------------
 
-.. automodule:: doggmentator.trainer.alum_squad_processor
+.. automodule:: kitanaqa.trainer.alum_squad_processor
    :members:
    :undoc-members:
    :show-inheritance:
@@ -12,7 +12,7 @@ Adversarial Squad Processor Module
 Arguments Module
 -------------------------------------
 
-.. automodule:: doggmentator.trainer.arguments
+.. automodule:: kitanaqa.trainer.arguments
    :members:
    :undoc-members:
    :show-inheritance:
@@ -20,7 +20,7 @@ Arguments Module
 Custom Schedulers Module
 ----------------------------------------------
 
-.. automodule:: doggmentator.trainer.custom_schedulers
+.. automodule:: kitanaqa.trainer.custom_schedulers
    :members:
    :undoc-members:
    :show-inheritance:
@@ -28,7 +28,7 @@ Custom Schedulers Module
 Train Module
 ---------------------------------
 
-.. automodule:: doggmentator.trainer.train
+.. automodule:: kitanaqa.trainer.train
    :members:
    :undoc-members:
    :show-inheritance:
@@ -36,7 +36,7 @@ Train Module
 Utils module
 ---------------------------------
 
-.. automodule:: doggmentator.trainer.utils
+.. automodule:: kitanaqa.trainer.utils
    :members:
    :undoc-members:
    :show-inheritance:
@@ -45,7 +45,7 @@ Utils module
 Module contents
 ---------------
 
-.. automodule:: doggmentator.trainer
+.. automodule:: kitanaqa.trainer
    :members:
    :undoc-members:
    :show-inheritance:
