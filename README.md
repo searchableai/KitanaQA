@@ -7,7 +7,8 @@
   <a href="#features">Features</a> •
   <a href="#installation">Install</a> •
   <a href="#getting-started">Getting Started</a> •
-  <a href="#examples">Examples</a>
+  <a href="#examples">Examples</a> •
+  <a href="https://kitanaqa.readthedocs.io/en/master/">Docs</a>
   <br> <br>
 </p>
 
