@@ -19,7 +19,7 @@ pytz==2020.5
 pytzdata==2020.1
 PyYAML==5.4.1
 scikit-learn==0.24.1
-scipy==1.6.0
+scipy==1.10.0
 sentencepiece==0.1.95
 spark-nlp==2.5.2
 sparknlp==1.0.0
