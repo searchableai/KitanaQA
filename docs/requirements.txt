@@ -9,7 +9,7 @@ protobuf==3.14.0
 psutil==5.8.0
 py4j==0.10.9
 pyarrow==2.0.0
-Pygments==2.7.4
+Pygments==2.15.0
 pyparsing==2.4.7
 pyspark==3.0.1
 python-box==5.2.0
